@@ -1,0 +1,68 @@
+
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background-image: url('../images/src/login-bg.png'); 
+    background-size: cover; 
+    background-position: center; 
+    background-repeat: no-repeat; 
+    background-color: #f8f9fa; 
+    display: flex;
+}
+
+.right-container {
+    background-color: #ffffff;
+    padding: 30px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 360px;
+    height: 100vh;
+    position: absolute;
+    right: 0; 
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start; 
+}
+.left-container {
+    margin: auto 0;
+    margin-top: 10%;
+}
+.card {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    box-shadow:  0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.input-group-text:hover {
+    cursor: pointer;
+    color: #007bff;
+}
+
+@media (max-width: 768px) {
+    .left-container {
+        padding: 20px;
+    }
+    .right-container {
+        padding: 20px;
+    }
+}
+ul.suggestion-box {
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+}
+
+li.suggestion-item {
+    padding: 5px;
+    cursor: pointer;
+}
+
+li.suggestion-item:hover {
+    background-color: #f0f0f0;
+}
