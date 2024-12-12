@@ -114,7 +114,7 @@ body {
 
 /* Toggle button styling */
 .sidebar .hamburger {
-    font-size: 1.5rem;
+    font-size: 2rem;
     color: #a8b5c7;
     cursor: pointer;
     margin: .5rem;
@@ -299,11 +299,33 @@ li.suggestion-item:hover {
     background-color: #f0f0f0;
 }
 
+.details-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .2rem; 
+    margin-bottom: .5px;
+    padding: 0.5rem;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+}
 
+.details-section div {
+    flex: 1 1 48%;  
+    margin-bottom: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .details-section div {
+        flex: 1 1 100%;  
+    }
+}
 #items-table_wrapper {
     width: 100%;
     overflow-x: auto;
 }
+
+
     .dataTables_filter input {
         width: 200px;
         padding: 10px;

@@ -78,7 +78,7 @@
 ?>
 
 <section id="tw-forms">
-    <div class="header-container">
+    <div class="header-container mb-4">
         <h4 class="text-left">Submitted Forms</h4>
     </div>
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -86,10 +86,14 @@
                     <i class="fas fa-arrow-left" style="margin-right: 10px; font-size: 1.2rem;"></i>
                     Back
                 </a>
-                <div class="actions">
-                    <a href="javascript:void(0);" data-bs-toggle="modal" class="badge btn-success text-decoration-none" data-bs-target="#formTypeModal"></i> <strong>Request Form</strong></a>
-                </div>
             </div>
+            <div class="d-flex justify-content-end align-items-center" style="gap: 10px">
+                    <a href="javascript:void(0);" data-bs-toggle="modal" class="btn btn-success btn-sm text-decoration-none" data-bs-target="#formTypeModal"></i> <strong>Request Form</strong></a>
+                    
+                    <a href="../generate_twform1_pdf.php?tw_form_id=<?php $tw_form_id ?>&action=I" class="btn btn-warning btn-sm" target="_blank">Print</a>
+                    <a href="../generate_twform1_pdf.php?tw_form_id=<?php $tw_form_id ?>&action=D" class="btn btn-primary btn-sm" target="_blank">Download</a>
+                </div>
+
             <div class="modal fade" id="formTypeModal" tabindex="-1" aria-labelledby="formTypeModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
@@ -156,7 +160,7 @@
                                 <th scope="col">Research Adviser</th>
                                 <th scope="col">Status</th>
                                 <th scope="col">Date</th>
-                                <th scope="col">Action</th>
+                                <th scope="col">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -171,8 +175,35 @@
                                     <td><?= ucfirst($form['overall_status']) ?></td>
                                     <td><?= $form['submission_date'] ?></td>
                                     <td>
-                                        <a href="tw-form-view.php?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm">View</a>
+                                        <?php 
+                                        switch ($form['form_type']) {
+                                            case 'twform_1':
+                                                $viewPage = 'tw-form1-details.php';
+                                                break;
+                                            case 'twform_2':
+                                                $viewPage = 'tw-form2-details.php';
+                                                break;
+                                            case 'twform_3':
+                                                $viewPage = 'tw-form3-details.php';
+                                                break;
+                                            case 'twform_4':
+                                                $viewPage = 'tw-form4-details.php';
+                                                break;
+                                            case 'twform_5':
+                                                $viewPage = 'tw-form5-details.php';
+                                                break;
+                                            default:
+                                                    $_SESSION['messages'][] = [
+                                                        'tags' => 'danger', 
+                                                        'content' => "Unknown form type encountered for Form ID: {$form['tw_form_id']}."
+                                                    ];
+                                                $viewPage = 'tw-forms.php'; 
+                                                break;
+                                        }
+                                        ?>
+                                        <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm">View</a>
                                     </td>
+
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>

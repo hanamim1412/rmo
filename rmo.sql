@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 07, 2024 at 08:03 PM
+-- Generation Time: Dec 11, 2024 at 03:14 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -63,8 +63,8 @@ INSERT INTO `accounts` (`user_id`, `username`, `password`, `firstname`, `lastnam
 CREATE TABLE `assigned_panelists` (
   `assigned_panelist_id` int(11) NOT NULL,
   `tw_form_id` int(11) NOT NULL,
-  `account_id` int(11) NOT NULL,
-  `is_active` tinyint(11) DEFAULT 1,
+  `user_id` int(11) NOT NULL,
+  `is_selected` tinyint(11) DEFAULT 1,
   `date_created` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -220,8 +220,8 @@ CREATE TABLE `proponents` (
 --
 
 INSERT INTO `proponents` (`proponent_id`, `tw_form_id`, `firstname`, `lastname`, `date_created`) VALUES
-(1, 0, 'nor janah', 'mimbisa', '2024-12-08'),
-(2, 0, 'james angelo', 'anadon', '2024-12-08');
+(5, 1, 'krishnah', 'lorejo', '2024-12-11'),
+(6, 1, 'Zach Emmanuel', 'Villamor', '2024-12-11');
 
 -- --------------------------------------------------------
 
@@ -243,8 +243,8 @@ CREATE TABLE `proposed_title` (
 --
 
 INSERT INTO `proposed_title` (`proposed_title_id`, `tw_form_id`, `title_name`, `rationale`, `is_selected`, `date_created`) VALUES
-(1, 0, 'Student Attendance Monitoring System', '\r\nRationale:  \r\nThis system will provide an automated solution for tracking student attendance in schools or universities. The web-based application allows teachers to easily mark attendance, view attendance history, and generate reports. Students\' attendance records can be accessed and analyzed in real-time, helping to identify trends such as frequent absences. The use of digital attendance management enhances accuracy, saves time, and reduces administrative burden.', 0, '2024-12-08'),
-(2, 0, 'Online Exam Management System', 'Rationale:  \r\nThe Online Exam Management System is designed to streamline the process of creating, administering, and grading exams in an academic environment. This system allows instructors to set up and schedule online exams, monitor students’ progress, and provide instant feedback. With features like automated grading and secure exam-taking environments, the system ensures fairness, reduces human error, and provides convenience for both educators and students.', 1, '2024-12-08');
+(5, 1, 'Student Attendance Monitoring System', 'This system will provide an automated solution for tracking student attendance in schools or universities. The web-based application allows teachers to easily mark attendance, view attendance history, and generate reports. Students\' attendance records can be accessed and analyzed in real-time, helping to identify trends such as frequent absences. The use of digital attendance management enhances accuracy, saves time, and reduces administrative burden.', 0, '2024-12-11'),
+(6, 1, 'Online Exam Management System', 'Rationale:  \r\nThe Online Exam Management System is designed to streamline the process of creating, administering, and grading exams in an academic environment. This system allows instructors to set up and schedule online exams, monitor students’ progress, and provide instant feedback. With features like automated grading and secure exam-taking environments, the system ensures fairness, reduces human error, and provides convenience for both educators and students.', 0, '2024-12-11');
 
 -- --------------------------------------------------------
 
@@ -259,6 +259,19 @@ CREATE TABLE `receipts` (
   `receipt_num` varchar(20) NOT NULL,
   `date_paid` date NOT NULL,
   `date_submitted` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `reports`
+--
+
+CREATE TABLE `reports` (
+  `report_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `date_generated` date NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -281,7 +294,9 @@ CREATE TABLE `twform_1` (
 --
 
 INSERT INTO `twform_1` (`form1_id`, `tw_form_id`, `year_level`, `form_status`, `date_created`, `last_updated`) VALUES
-(5, 0, '4', 'pending', '2024-12-08 01:25:07', '2024-12-08 01:25:07');
+(5, 0, '4', 'pending', '2024-12-08 01:25:07', '2024-12-08 01:25:07'),
+(6, 0, '4', 'pending', '2024-12-11 21:44:17', '2024-12-11 21:44:17'),
+(7, 1, '4', 'pending', '2024-12-11 21:50:08', '2024-12-11 21:50:08');
 
 -- --------------------------------------------------------
 
@@ -380,7 +395,7 @@ CREATE TABLE `tw_forms` (
 --
 
 INSERT INTO `tw_forms` (`tw_form_id`, `form_type`, `ir_agenda_id`, `col_agenda_id`, `department_id`, `course_id`, `user_id`, `research_adviser_id`, `overall_status`, `comments`, `submission_date`, `last_updated`) VALUES
-(0, 'twform_1', 1, 4, 1, 1, 9, 13, 'pending', NULL, '2024-12-08', '2024-12-07 17:25:07');
+(1, 'twform_1', 1, 4, 1, 2, 9, 14, 'pending', NULL, '2024-12-11', '2024-12-11 13:50:08');
 
 --
 -- Indexes for dumped tables
@@ -398,7 +413,8 @@ ALTER TABLE `accounts`
 --
 ALTER TABLE `assigned_panelists`
   ADD PRIMARY KEY (`assigned_panelist_id`),
-  ADD KEY `tw_form_id` (`tw_form_id`);
+  ADD KEY `tw_form_id` (`tw_form_id`),
+  ADD KEY `assigned_panelists_ibfk_2` (`user_id`);
 
 --
 -- Indexes for table `attachments`
@@ -458,6 +474,12 @@ ALTER TABLE `proposed_title`
 --
 ALTER TABLE `receipts`
   ADD PRIMARY KEY (`receipt_id`);
+
+--
+-- Indexes for table `reports`
+--
+ALTER TABLE `reports`
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `twform_1`
@@ -564,13 +586,13 @@ ALTER TABLE `institutional_research_agenda`
 -- AUTO_INCREMENT for table `proponents`
 --
 ALTER TABLE `proponents`
-  MODIFY `proponent_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `proponent_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `proposed_title`
 --
 ALTER TABLE `proposed_title`
-  MODIFY `proposed_title_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `proposed_title_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `receipts`
@@ -582,7 +604,7 @@ ALTER TABLE `receipts`
 -- AUTO_INCREMENT for table `twform_1`
 --
 ALTER TABLE `twform_1`
-  MODIFY `form1_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `form1_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `twform_2`
@@ -609,6 +631,12 @@ ALTER TABLE `twform_5`
   MODIFY `form5_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `tw_forms`
+--
+ALTER TABLE `tw_forms`
+  MODIFY `tw_form_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- Constraints for dumped tables
 --
 
@@ -622,7 +650,8 @@ ALTER TABLE `accounts`
 -- Constraints for table `assigned_panelists`
 --
 ALTER TABLE `assigned_panelists`
-  ADD CONSTRAINT `assigned_panelists_ibfk_1` FOREIGN KEY (`tw_form_id`) REFERENCES `tw_forms` (`tw_form_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `assigned_panelists_ibfk_1` FOREIGN KEY (`tw_form_id`) REFERENCES `tw_forms` (`tw_form_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `assigned_panelists_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `accounts` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `attachments`
@@ -653,6 +682,12 @@ ALTER TABLE `proponents`
 --
 ALTER TABLE `proposed_title`
   ADD CONSTRAINT `proposed_title_ibfk_2` FOREIGN KEY (`tw_form_id`) REFERENCES `tw_forms` (`tw_form_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `reports`
+--
+ALTER TABLE `reports`
+  ADD CONSTRAINT `reports_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `accounts` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `twform_2`

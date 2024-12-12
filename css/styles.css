@@ -10,7 +10,21 @@ body {
     background-color: #f8f9fa; 
     display: flex;
 }
-
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); 
+    background-color: #4a90e2;
+    padding: 5px;
+    text-align: left;
+    z-index: 1000;
+}
+.header img {
+    width: 100px;
+    cursor: pointer;
+}
 .right-container {
     background-color: #ffffff;
     padding: 30px;

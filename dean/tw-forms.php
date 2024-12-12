@@ -13,7 +13,7 @@
 
     function getTWForms() {
         global $conn;
-        $currentUserId = $_SESSION['user_id'];
+    
         $query = "
             SELECT 
                 tw.tw_form_id, 
@@ -46,7 +46,6 @@
         if (!$stmt) {
             die("Database Query Failed: " . mysqli_error($conn));
         }
-        mysqli_stmt_bind_param($stmt, 'i', $currentUserId);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
     
@@ -70,14 +69,12 @@
         return $requests;
     }
     
-
     $tw_form_id = $_GET['tw_form_id'] ?? null;
-
     $twforms_by_status = getTWForms();
 ?>
 
-<section id="tw-forms">
-    <div class="header-container">
+<section id="tw-forms" class="pt-4">
+    <div class="header-container pt-4">
         <h4 class="text-left">Submitted Forms</h4>
     </div>
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -141,21 +138,22 @@
         </div>
     
         <div class="row">
-        <?php foreach (['pending', 'approved', 'rejected'] as $status): ?>
+            <?php foreach (['pending', 'approved', 'rejected'] as $status): ?>
             <div id="<?= $status ?>Forms" class="form-section w-100" style="display: <?= $status === 'pending' ? 'block' : 'none'; ?>;">
                 <?php if (!empty($twforms_by_status[$status])): ?>
-                    <table class="table table-bordered table-sm">
-                        <thead>
+                <div class="table-responsive">
+                    <table id="items-table" class="table table-bordered table-sm display">
+                        <thead class="w-100">
                             <tr>
-                                <th scope="col">#</th>
-                                <th scope="col">Form Type</th>
-                                <th scope="col">College</th>
-                                <th scope="col">Course</th>
-                                <th scope="col">Submitted By</th>
-                                <th scope="col">Research Adviser</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Date</th>
-                                <th scope="col">Action</th>
+                                <th>#</th>
+                                <th>Form Type</th>
+                                <th>College</th>
+                                <th>Course</th>
+                                <th>Submitted By</th>
+                                <th>Research Adviser</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -170,12 +168,39 @@
                                     <td><?= ucfirst($form['overall_status']) ?></td>
                                     <td><?= $form['submission_date'] ?></td>
                                     <td>
-                                        <a href="tw-form-view.php?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm">View</a>
+                                        <?php 
+                                        switch ($form['form_type']) {
+                                            case 'twform_1':
+                                                $viewPage = 'tw-form1-details.php';
+                                                break;
+                                            case 'twform_2':
+                                                $viewPage = 'tw-form2-details.php';
+                                                break;
+                                            case 'twform_3':
+                                                $viewPage = 'tw-form3-details.php';
+                                                break;
+                                            case 'twform_4':
+                                                $viewPage = 'tw-form4-details.php';
+                                                break;
+                                            case 'twform_5':
+                                                $viewPage = 'tw-form5-details.php';
+                                                break;
+                                            default:
+                                                    $_SESSION['messages'][] = [
+                                                        'tags' => 'danger', 
+                                                        'content' => "Unknown form type encountered for Form ID: {$form['tw_form_id']}."
+                                                    ];
+                                                $viewPage = 'tw-forms.php'; 
+                                                break;
+                                        }
+                                        ?>
+                                        <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm">View</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
                     <?php else: ?>
                     <p class="text-center text-muted">No <?= ucfirst($status) ?> forms available.</p>
                 <?php endif; ?>
@@ -230,9 +255,34 @@
             });
         }, 5000);
     });
+
+$(document).ready(function() {
+    $('#items-table').DataTable({
+        "scrollX": true,
+        "autoWidth": false,
+        "paging": true,
+        "lengthChange": true,
+        "searching": true,
+        "ordering": true,
+        "info": true,
+        "pageLength": 5,
+        "language": {
+            "search": "Search:",
+            "lengthMenu": "Show _MENU_ entries",
+            "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+            "paginate": {
+                "previous": "Prev",
+                "next": "Next"
+            }
+        }
+    }).columns.adjust(); 
+});
+
+
 </script>
 
 <?php
 $content = ob_get_clean();
 include('dean-master.php');
 ?>
+

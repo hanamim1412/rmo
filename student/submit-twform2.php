@@ -31,16 +31,16 @@ mysqli_begin_transaction($conn);
 try {
 
     $form_type = 'twform_2'; 
-    $query = "INSERT INTO tw_forms (user_id, department_id, course_id, adviser_id, ir_agenda_id, col_agenda_id, form_type, research_adviser_id, submission_date, last_updated) 
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+    $query = "INSERT INTO tw_forms (user_id, department_id, course_id, adviser_id, ir_agenda_id, col_agenda_id, form_type, research_adviser_id, overall_status, submission_date, last_updated) 
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())";
     $stmt = mysqli_prepare($conn, $query);
     mysqli_stmt_bind_param($stmt, 'iiiiisss', $user_id, $department_id, $course_id, $adviser_id, $ir_agenda_id, $col_agenda_id, $form_type, $adviser_id);
     mysqli_stmt_execute($stmt);
 
     $tw_form_id = mysqli_insert_id($conn);
 
-    $query = "INSERT INTO twform_2 (tw_form_id, thesis_title, defense_date, defense_time, defense_place, form_status, date_created, last_updated) 
-              VALUES (?, ?, ?, ?, ?, 'pending', NOW(), NOW())";
+    $query = "INSERT INTO twform_2 (tw_form_id, thesis_title, defense_date, defense_time, defense_place, date_created, last_updated) 
+              VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
     $stmt = mysqli_prepare($conn, $query);
     mysqli_stmt_bind_param($stmt, 'isssss', $tw_form_id, $thesis_title, $defense_date, $defense_time, $defense_place);
     mysqli_stmt_execute($stmt);

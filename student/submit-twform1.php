@@ -46,8 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $tw_form_id = mysqli_insert_id($conn);
 
-        $query = "INSERT INTO twform_1 (tw_form_id, year_level, form_status, date_created)
-                  VALUES (?, ?, 'pending', NOW())";
+        $query = "INSERT INTO twform_1 (tw_form_id, year_level, date_created)
+                  VALUES (?, ?, NOW())";
         $stmt = mysqli_prepare($conn, $query);
         $year_level = $_POST['year_level']; 
         mysqli_stmt_bind_param($stmt, 'ii', $tw_form_id, $year_level);
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         mysqli_commit($conn);
 
         $_SESSION['messages'][] = ['tags' => 'success', 'content' => "Form submitted successfully."];
-        header("Location: twform_1.php");
+        header("Location: tw-forms.php");
         exit();
     } catch (Exception $e) {
         mysqli_rollback($conn);

@@ -8,7 +8,7 @@
         <meta http-equiv="Expires" content="0">
     <?php endif; ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo isset($title) ? $title : 'CSWD Inventory'; ?></title>
+    <title><?php echo isset($title) ? $title : 'SMC PORTAL'; ?></title>
         
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
@@ -18,6 +18,7 @@
     <?php if (isset($extra_head)) echo $extra_head; ?>
 </head>
 <body>
+    
     <?php include 'student-sidebar.php'; ?>
     <?php if (isset($content)) : ?>
         <div class="main-content">
