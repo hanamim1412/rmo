@@ -145,33 +145,33 @@ session_start();
         return $result->fetch_all(MYSQLI_ASSOC);
     }
 
-    function GetAssignedPanelist($id) {
-        global $conn, $user_id, $user_type;
+    function GetAssignedPanelist($tw_form_id) {
+        global $conn;
         $query = "
             SELECT
-                    panelist.assigned_panelist_id,
-                    panelist.tw_form_id,
-                    acc.firstname AS panelist_firstname,
-                    acc.lastname AS panelist_lastname
-                FROM assigned_panelists panelist
-                LEFT JOIN TW_FORMS tw ON panelist.tw_form_id = tw.tw_form_id
-                LEFT JOIN ACCOUNTS panel ON panelist.user_id = panel.user_id AND panel.user_type = 'panelist'
-                WHERE tw.tw_form_id = ?
-                " . ($user_type === 'panelist' ? "AND u.user_type = 'panelist' AND tw.user_id = ?" : "") . "
-            ";
-            $stmt = $conn->prepare($query);
-            if ($user_type === 'panelist') {
-                $stmt->bind_param("ii", $id, $user_id);  
-            } else {
-                $stmt->bind_param("i", $id);  
-            }
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-        return $result->num_rows > 0 ? $result->fetch_assoc() : null;
+                panelist.assigned_panelist_id,
+                panelist.tw_form_id,
+                acc.firstname AS panelist_firstname,
+                acc.lastname AS panelist_lastname
+            FROM assigned_panelists panelist
+            LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id AND acc.user_type = 'panelist'
+            WHERE panelist.tw_form_id = ?
+        ";
+        
+        $stmt = $conn->prepare($query);
+        if (!$stmt) {
+            die("Database query failed: " . $conn->error);
+        }
+    
+        $stmt->bind_param("i", $tw_form_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    
+        return $result->num_rows > 0 ? $result->fetch_all(MYSQLI_ASSOC) : [];
     }
 
     $tw_form_id = $_GET['tw_form_id']; 
+    $panelists = GetAssignedPanelist($tw_form_id);
     $twform_details = getTWFormDetails($tw_form_id); 
     $twform1_details = getTWForm1Details($tw_form_id);  
     $proponents = GetProponents($tw_form_id);  
@@ -185,16 +185,10 @@ session_start();
         <a href="javascript:history.back()" class="btn btn-link">
             <i class="fas fa-arrow-left" style="margin-right: 5px;text-decoration: none; color: black; font-size: 1.2rem;"></i>
          </a>
-            TW form 1: Approval of Proposed Titles
+            TW form 1: Approval of Thesis Title and Nomination of Panel of Examiners 
         </h4>
     </div>
-    <div class="d-flex justify-content-end align-items-center mb-4">
-        
-    <div class="actions">
-        <a href="../generate_twform1_pdf.php?tw_form_id=<?php $twform_details['tw_form_id'] ?>&action=I" class="btn btn-warning btn-sm" target="_blank">Print</a>
-        <a href="../generate_twform1_pdf.php?tw_form_id=<?php $twform_details['tw_form_id'] ?>&action=D" class="btn btn-primary btn-sm" target="_blank">Download</a>
-    </div>
-    </div>
+    
         <?php if (!empty($messages)): ?>
             <div class="container mt-3">
                 <?php foreach ($messages as $message): ?>
@@ -234,13 +228,26 @@ session_start();
                         <ul>
                             <?php foreach ($proponents as $proponent): ?>
                                 <li><?= ucwords(htmlspecialchars($proponent['firstname'] . ' ' . $proponent['lastname'])) ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                            <?php else: ?>
+                                <p>No proponents found for this form.</p>
+                                <?php endif; ?>
+                </div>
+                <div>
+                    <strong>Panelists:</strong> 
+                    <?php if (!empty($panelists)): ?>
+                        <ul>
+                            <?php foreach ($panelists as $panelist): ?>
+                                <li><?= ucwords(htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname'])) ?></li>
                             <?php endforeach; ?>
                         </ul>
                     <?php else: ?>
-                        <p>No proponents found for this form.</p>
+                        <p>No panelists assigned yet.</p>
                     <?php endif; ?>
                 </div>
-                  
+                            
+                <div><strong>Comments:</strong> <?= htmlspecialchars($twform_details['comments']) ?></div> 
                 
                 <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
                 <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
@@ -249,13 +256,12 @@ session_start();
             <div class="table-container mt-4">
                     <?php if (!empty($titles)): ?>
                         <table id="items-table" class="table table-bordered display">
-                            <thead class="thead-dark">
+                            <thead class="thead-background">
                                 <tr>
                                     <th scope="col">#</th>
                                     <th scope="col">Title</th>
                                     <th scope="col">Rationale</th>
-                                    <th scope="col">Selection</th>
-                                    <th scope="col">Actions</th>
+                                    <th scope="col">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -269,25 +275,6 @@ session_start();
                                                 <span class="badge btn-success">Selected</span>
                                             <?php else: ?>
                                                 <span class="badge btn-danger">Not Selected</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if (isset($title['proposed_title_id']) && $title['is_selected']): ?>
-                                                <form method="post" action="update-title-status.php" onsubmit="return confirm('Are you sure you want to deselect this title?');" style="display:inline;">
-                                                    <input type="hidden" name="proposed_title_id" value="<?= htmlspecialchars($title['proposed_title_id']); ?>">
-                                                    <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
-                                                    <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']); ?>">
-                                                    <input type="hidden" name="new_status" value="0">
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Deselected</button>
-                                                </form>
-                                            <?php elseif (isset($title['proposed_title_id'])): ?>
-                                                <form method="post" action="update-title-status.php" onsubmit="return confirm('Are you sure you want to select this title?');" style="display:inline;">
-                                                    <input type="hidden" name="proposed_title_id" value="<?= htmlspecialchars($title['proposed_title_id']); ?>">
-                                                    <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
-                                                    <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']); ?>">
-                                                    <input type="hidden" name="new_status" value="1">
-                                                    <button type="submit" class="btn btn-sm btn-outline-success">Selected</button>
-                                                </form>
                                             <?php endif; ?>
                                         </td>
                                     </tr>
@@ -336,3 +323,9 @@ session_start();
 $content = ob_get_clean();
 include('student-master.php');
 ?>
+<style>
+    #items-table .thead-background {
+    background-color:rgb(56, 120, 193);
+    color: white;
+}
+</style>

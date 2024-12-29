@@ -13,7 +13,7 @@ ob_start();
 $title = "TW Form 1: Approval of Thesis Title";
 
 $department_id = isset($_GET['department_id']) ? (int) $_GET['department_id'] : 0;
-// Function to fetch departments
+
 function getDepartments() {
     global $conn;
     $query = "SELECT department_id, department_name FROM departments";
@@ -31,7 +31,6 @@ function getDepartments() {
     return $departments;
 }
 
-// Function to fetch courses by department
 function getCourses($department_id) {
     global $conn;
     $query = "SELECT course_id, course_name FROM courses WHERE department_id = ?";
@@ -229,9 +228,11 @@ $ir_agendas = getInstitutionalAgenda();
 <script>
 $(document).ready(function () {
     $('#twform1').on('submit', function () {
-        
-        $('#loadingOverlay').removeClass('d-none');
+        $('#loadingOverlay').removeClass('d-none'); 
+    });
 
+    $(window).on('load', function() {
+        $('#loadingOverlay').addClass('d-none'); 
     });
 });
 
@@ -385,9 +386,8 @@ document.addEventListener('DOMContentLoaded', () => {
 #loadingSpinnerContainer {
     width: 5rem;
     height: 5rem;
-    color: white; 
+    color: #007bff; 
 }
-
 
 .container {
         display: flex;

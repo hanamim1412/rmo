@@ -77,8 +77,8 @@
     $twforms_by_status = getTWForms();
 ?>
 
-<section id="tw-forms">
-    <div class="header-container mb-4">
+<section id="tw-forms" class="pt-4">
+    <div class="header-container pt-4">
         <h4 class="text-left">Submitted Forms</h4>
     </div>
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -86,13 +86,10 @@
                     <i class="fas fa-arrow-left" style="margin-right: 10px; font-size: 1.2rem;"></i>
                     Back
                 </a>
-            </div>
-            <div class="d-flex justify-content-end align-items-center" style="gap: 10px">
-                    <a href="javascript:void(0);" data-bs-toggle="modal" class="btn btn-success btn-sm text-decoration-none" data-bs-target="#formTypeModal"></i> <strong>Request Form</strong></a>
-                    
-                    <a href="../generate_twform1_pdf.php?tw_form_id=<?php $tw_form_id ?>&action=I" class="btn btn-warning btn-sm" target="_blank">Print</a>
-                    <a href="../generate_twform1_pdf.php?tw_form_id=<?php $tw_form_id ?>&action=D" class="btn btn-primary btn-sm" target="_blank">Download</a>
+                <div class="d-flex justify-content-end align-items-center" style="gap: 10px">
+                        <a href="javascript:void(0);" data-bs-toggle="modal" class="btn btn-success btn-sm text-decoration-none" data-bs-target="#formTypeModal"></i> <strong>Request Form</strong></a>
                 </div>
+            </div>
 
             <div class="modal fade" id="formTypeModal" tabindex="-1" aria-labelledby="formTypeModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
@@ -149,8 +146,8 @@
         <?php foreach (['pending', 'approved', 'rejected'] as $status): ?>
             <div id="<?= $status ?>Forms" class="form-section w-100" style="display: <?= $status === 'pending' ? 'block' : 'none'; ?>;">
                 <?php if (!empty($twforms_by_status[$status])): ?>
-                    <table class="table table-bordered table-sm">
-                        <thead>
+                    <table class="table table-bordered display">
+                        <thead class="thead-background">
                             <tr>
                                 <th scope="col">#</th>
                                 <th scope="col">Form Type</th>
@@ -175,34 +172,48 @@
                                     <td><?= ucfirst($form['overall_status']) ?></td>
                                     <td><?= $form['submission_date'] ?></td>
                                     <td>
-                                        <?php 
+                                    <?php 
                                         switch ($form['form_type']) {
                                             case 'twform_1':
                                                 $viewPage = 'tw-form1-details.php';
+                                                $pdfPage = 'generate_twform1_pdf.php';
                                                 break;
                                             case 'twform_2':
                                                 $viewPage = 'tw-form2-details.php';
+                                                $pdfPage = 'generate_twform2_pdf.php';
                                                 break;
                                             case 'twform_3':
                                                 $viewPage = 'tw-form3-details.php';
+                                                $pdfPage = 'generate_twform3_pdf.php';
                                                 break;
                                             case 'twform_4':
                                                 $viewPage = 'tw-form4-details.php';
+                                                $pdfPage = 'generate_twform4_pdf.php';
                                                 break;
                                             case 'twform_5':
                                                 $viewPage = 'tw-form5-details.php';
+                                                $pdfPage = 'generate_twform5_pdf.php';
                                                 break;
                                             default:
-                                                    $_SESSION['messages'][] = [
-                                                        'tags' => 'danger', 
-                                                        'content' => "Unknown form type encountered for Form ID: {$form['tw_form_id']}."
-                                                    ];
+                                                $_SESSION['messages'][] = [
+                                                    'tags' => 'danger', 
+                                                    'content' => "Unknown form type encountered for Form ID: {$form['tw_form_id']}."
+                                                ];
                                                 $viewPage = 'tw-forms.php'; 
+                                                $pdfPage = '';  
                                                 break;
                                         }
                                         ?>
-                                        <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm">View</a>
-                                    </td>
+                                        <div class="d-flex justify-content-between align-items-center mb-1" style="gap: 5px">
+                                            <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view">View</a>
+                                            <?php if ($pdfPage): ?>
+                                                <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=I" class="btn btn-success btn-sm" target="_blank">Print</a>
+                                                <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=D" class="btn btn-primary btn-sm" target="_blank">Download</a>
+                                            <?php else: ?>
+                                                <span class="text-muted">PDF generation not available for this form type.</span>
+                                            <?php endif; ?>
+                                        </div>
+                                        </td>
 
                                 </tr>
                             <?php endforeach; ?>
@@ -213,12 +224,24 @@
                 <?php endif; ?>
             </div>
         <?php endforeach; ?>
+        <div id="loadingOverlay" class="d-none">
+            <div id="loadingSpinnerContainer" class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
     </div>
 
 </section>
 
 
 <script>
+$(document).ready(function () {
+    $('#view').on('click', function () {
+        
+        $('#loadingOverlay').removeClass('d-none');
+
+    });
+});
         function showTab(tabId, contentId) {
             document.querySelectorAll('.form-section').forEach(section => {
                 section.style.display = 'none';
@@ -262,9 +285,57 @@
             });
         }, 5000);
     });
+$(document).ready(function () {
+    $('.table.table-bordered').each(function () {
+        $(this).DataTable({
+            scrollX: true,
+            autoWidth: false,
+            paging: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            pageLength: 5,
+            language: {
+                search: "Search:",
+                lengthMenu: "Show _MENU_ entries",
+                info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                paginate: {
+                    previous: "Prev",
+                    next: "Next"
+                }
+            }
+        }).columns.adjust();
+    });
+});
+
 </script>
 
 <?php
 $content = ob_get_clean();
 include('student-master.php');
 ?>
+<style>
+#loadingOverlay {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5); 
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+    z-index: 1050; 
+}
+
+#loadingSpinnerContainer {
+    width: 10rem;
+    height: 10rem;
+    color: #007bff; 
+}
+.thead-background {
+    background-color:rgb(56, 120, 193);
+    color: white;
+}
+</style>

@@ -145,30 +145,29 @@ session_start();
         return $result->fetch_all(MYSQLI_ASSOC);
     }
 
-    function GetAssignedPanelist($id) {
-        global $conn, $user_id, $user_type;
+    function GetAssignedPanelist($tw_form_id) {
+        global $conn;
         $query = "
             SELECT
-                    panelist.assigned_panelist_id,
-                    panelist.tw_form_id,
-                    acc.firstname AS panelist_firstname,
-                    acc.lastname AS panelist_lastname
-                FROM assigned_panelists panelist
-                LEFT JOIN TW_FORMS tw ON panelist.tw_form_id = tw.tw_form_id
-                LEFT JOIN ACCOUNTS panel ON panelist.user_id = panel.user_id AND panel.user_type = 'panelist'
-                WHERE tw.tw_form_id = ?
-                " . ($user_type === 'panelist' ? "AND u.user_type = 'panelist' AND tw.user_id = ?" : "") . "
-            ";
-            $stmt = $conn->prepare($query);
-            if ($user_type === 'panelist') {
-                $stmt->bind_param("ii", $id, $user_id);  
-            } else {
-                $stmt->bind_param("i", $id);  
-            }
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-        return $result->num_rows > 0 ? $result->fetch_assoc() : null;
+                panelist.assigned_panelist_id,
+                panelist.tw_form_id,
+                acc.firstname AS panelist_firstname,
+                acc.lastname AS panelist_lastname
+            FROM assigned_panelists panelist
+            LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id AND acc.user_type = 'panelist'
+            WHERE panelist.tw_form_id = ?
+        ";
+        
+        $stmt = $conn->prepare($query);
+        if (!$stmt) {
+            die("Database query failed: " . $conn->error);
+        }
+    
+        $stmt->bind_param("i", $tw_form_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    
+        return $result->num_rows > 0 ? $result->fetch_all(MYSQLI_ASSOC) : [];
     }
 
     $tw_form_id = $_GET['tw_form_id']; 
@@ -176,6 +175,7 @@ session_start();
     $twform1_details = getTWForm1Details($tw_form_id);  
     $proponents = GetProponents($tw_form_id);  
     $titles = GetTitles($tw_form_id);  
+    $panelists = GetAssignedPanelist($tw_form_id);  
 ?>
 
 
@@ -250,7 +250,7 @@ session_start();
                     <?php endif; ?>
                 </div>
                 <div>
-                    <strong>Titles:</strong><strong>Assigned Panelists:</strong> 
+                    <strong>Assigned Panelists:</strong> 
                         <?php if (!empty($panelists)): ?>
                             <ul>
                                 <?php foreach ($panelists as $panelist): ?>
@@ -296,7 +296,7 @@ session_start();
             <div class="table-container mt-4">
                     <?php if (!empty($titles)): ?>
                         <table id="items-table" class="table table-bordered display">
-                            <thead class="thead-dark">
+                            <thead class="thead-background">
                                 <tr>
                                     <th scope="col">#</th>
                                     <th scope="col">Title</th>
@@ -346,11 +346,24 @@ session_start();
                                 <p class="text-center text-muted">No proposed titles available.</p>
                             </div>
                         <?php endif; ?>
+                <div id="loadingOverlay" class="d-none">
+                    <div id="loadingSpinnerContainer" class="spinner-border" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
             </div>
          
 </section>
 
 <script>
+$(document).ready(function () {
+    $('#load').on('click', function () {
+        
+        $('#loadingOverlay').removeClass('d-none');
+
+    });
+});
+
     function toggleEdit() {
         const display = document.getElementById('remarks-display');
         const editForm = document.getElementById('edit-remarks-form');
@@ -383,3 +396,27 @@ session_start();
 $content = ob_get_clean();
 include('dean-master.php');
 ?>
+<style>
+    #items-table .thead-background {
+    background-color:rgb(56, 120, 193);
+    color: white;
+}
+#loadingOverlay {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5); 
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+    z-index: 1050; 
+}
+
+#loadingSpinnerContainer {
+    width: 5rem;
+    height: 5rem;
+    color: #007bff; 
+}
+</style>

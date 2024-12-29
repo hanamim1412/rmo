@@ -325,7 +325,10 @@ li.suggestion-item:hover {
     overflow-x: auto;
 }
 
-
+.table-container .table .thead-background {
+    background-color:rgb(56, 120, 193);
+    color: white;
+}
     .dataTables_filter input {
         width: 200px;
         padding: 10px;

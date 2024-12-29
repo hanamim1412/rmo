@@ -82,34 +82,7 @@
                     <i class="fas fa-arrow-left" style="margin-right: 10px; font-size: 1.2rem;"></i>
                     Back
                 </a>
-                <div class="actions">
-                    <a href="javascript:void(0);" data-bs-toggle="modal" class="badge btn-success text-decoration-none" data-bs-target="#formTypeModal"></i> <strong>Request Form</strong></a>
-                </div>
             </div>
-            <div class="modal fade" id="formTypeModal" tabindex="-1" aria-labelledby="formTypeModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="formTypeModalLabel">Select Form Type</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p>Please select the type of form you want to request:</p>
-                            <div class="list-group">
-                                <a href="twform_1.php" class="list-group-item list-group-item-action">TW Form 1</a>
-                                <a href="twform_2.php" class="list-group-item list-group-item-action">TW Form 2</a>
-                                <a href="twform_3.php" class="list-group-item list-group-item-action">TW Form 3</a>
-                                <a href="twform_4.php" class="list-group-item list-group-item-action">TW Form 4</a>
-                                <a href="twform_5.php" class="list-group-item list-group-item-action">TW Form 5</a>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
         <?php if (!empty($messages)): ?>
             <div class="container mt-3">
                 <?php foreach ($messages as $message): ?>
@@ -143,7 +116,7 @@
                 <?php if (!empty($twforms_by_status[$status])): ?>
                 <div class="table-responsive">
                     <table id="items-table" class="table table-bordered table-sm display">
-                        <thead class="w-100">
+                        <thead class="thead-background">
                             <tr>
                                 <th>#</th>
                                 <th>Form Type</th>
@@ -194,7 +167,7 @@
                                                 break;
                                         }
                                         ?>
-                                        <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm">View</a>
+                                        <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view">View</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -206,12 +179,25 @@
                 <?php endif; ?>
             </div>
         <?php endforeach; ?>
+        <div id="loadingOverlay" class="d-none">
+            <div id="loadingSpinnerContainer" class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
     </div>
 
 </section>
 
 
 <script>
+$(document).ready(function () {
+    $('#view').on('click', function () {
+        
+        $('#loadingOverlay').removeClass('d-none');
+
+    });
+});
+
         function showTab(tabId, contentId) {
             document.querySelectorAll('.form-section').forEach(section => {
                 section.style.display = 'none';
@@ -256,28 +242,29 @@
         }, 5000);
     });
 
-$(document).ready(function() {
-    $('#items-table').DataTable({
-        "scrollX": true,
-        "autoWidth": false,
-        "paging": true,
-        "lengthChange": true,
-        "searching": true,
-        "ordering": true,
-        "info": true,
-        "pageLength": 5,
-        "language": {
-            "search": "Search:",
-            "lengthMenu": "Show _MENU_ entries",
-            "info": "Showing _START_ to _END_ of _TOTAL_ entries",
-            "paginate": {
-                "previous": "Prev",
-                "next": "Next"
+$(document).ready(function () {
+    $('.table.table-bordered').each(function () {
+        $(this).DataTable({
+            scrollX: true,
+            autoWidth: false,
+            paging: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            pageLength: 5,
+            language: {
+                search: "Search:",
+                lengthMenu: "Show _MENU_ entries",
+                info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                paginate: {
+                    previous: "Prev",
+                    next: "Next"
+                }
             }
-        }
-    }).columns.adjust(); 
+        }).columns.adjust();
+    });
 });
-
 
 </script>
 
@@ -285,4 +272,28 @@ $(document).ready(function() {
 $content = ob_get_clean();
 include('dean-master.php');
 ?>
+<style>
+#loadingOverlay {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5); 
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+    z-index: 1050; 
+}
+
+#loadingSpinnerContainer {
+    width: 5rem;
+    height: 5rem;
+    color: #007bff; 
+}
+.thead-background {
+    background-color:rgb(56, 120, 193);
+    color: white;
+}
+</style>
 

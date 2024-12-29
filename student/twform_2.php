@@ -13,7 +13,7 @@ ob_start();
 $title = "TW Form 2: Approval for Proposal Hearing";
 
 $department_id = isset($_GET['department_id']) ? (int) $_GET['department_id'] : 0;
-// Function to fetch departments
+
 function getDepartments() {
     global $conn;
     $query = "SELECT department_id, department_name FROM departments";
@@ -31,7 +31,6 @@ function getDepartments() {
     return $departments;
 }
 
-// Function to fetch courses by department
 function getCourses($department_id) {
     global $conn;
     $query = "SELECT course_id, course_name FROM courses WHERE department_id = ?";
@@ -244,11 +243,13 @@ $ir_agendas = getInstitutionalAgenda();
 </section>
 
 <script>
-    $(document).ready(function () {
-    $('#twform1').on('submit', function () {
-        
-        $('#loadingOverlay').removeClass('d-none');
+$(document).ready(function () {
+    $('#twform2').on('submit', function () {
+        $('#loadingOverlay').removeClass('d-none'); 
+    });
 
+    $(window).on('load', function() {
+        $('#loadingOverlay').addClass('d-none'); 
     });
 });
 
@@ -272,45 +273,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const adviserSelect = document.querySelector('select[name="adviser_id"]');
     const proponentsContainer = document.getElementById('proponents-container');
 
-    function addProponent() {
-    const newProponent = document.createElement('div');
-    newProponent.classList.add('form-row', 'mt-2', 'align-items-center');
+        function addProponent() {
+        const newProponent = document.createElement('div');
+        newProponent.classList.add('form-row', 'mt-2', 'align-items-center');
 
-    newProponent.innerHTML = `
-        <div class="form-group col-md-4">
-            <input type="text" name="student_firstnames[]" class="form-control mb-1 proponent" placeholder="Enter firstname" required>
-        </div>
-        <div class="form-group col-md-4">
-            <input type="text" name="student_lastnames[]" class="form-control mb-1 proponent" placeholder="Enter lastname" required>
-        </div>
-        <div class="form-group col-md-4">
-            <input type="text" name="receipt_number[]" class="form-control" placeholder="Enter receipt #" required>   
-        </div>
-        <div class="form-group col-md-4">
-            <input type="file" name="receipt_img[]" class="form-control" required>   
-        </div>
-        <div class="form-group col-md-2">
-            <input type="date" name="receipt_date[]" class="form-control" required>   
-        </div>
-        <div class="form-group col-md-2">
-            <button type="button" class="btn btn-danger btn-sm remove-proponent">Remove</button>
-        </div>
-    `;
+        newProponent.innerHTML = `
+            <div class="form-group col-md-4">
+                <input type="text" name="student_firstnames[]" class="form-control mb-1 proponent" placeholder="Enter firstname" required>
+            </div>
+            <div class="form-group col-md-4">
+                <input type="text" name="student_lastnames[]" class="form-control mb-1 proponent" placeholder="Enter lastname" required>
+            </div>
+            <div class="form-group col-md-4">
+                <input type="text" name="receipt_number[]" class="form-control" placeholder="Enter receipt #" required>   
+            </div>
+            <div class="form-group col-md-4">
+                <input type="file" name="receipt_img[]" class="form-control" required>   
+            </div>
+            <div class="form-group col-md-2">
+                <input type="date" name="receipt_date[]" class="form-control" required>   
+            </div>
+            <div class="form-group col-md-2">
+                <button type="button" class="btn btn-danger btn-sm remove-proponent">Remove</button>
+            </div>
+        `;
 
-    proponentsContainer.appendChild(newProponent);
+        proponentsContainer.appendChild(newProponent);
 
-    const removeButton = newProponent.querySelector('.remove-proponent');
-    removeButton.addEventListener('click', () => {
-        newProponent.remove();
-    });
-}
+        const removeButton = newProponent.querySelector('.remove-proponent');
+        removeButton.addEventListener('click', () => {
+            newProponent.remove();
+        });
+    }
 
-function attachAddProponentListener() {
-    const addButton = document.querySelector('.add-proponent');
-    addButton.addEventListener('click', addProponent);
-}
+        function attachAddProponentListener() {
+            const addButton = document.querySelector('.add-proponent');
+            addButton.addEventListener('click', addProponent);
+        }
 
-document.getElementById('reset-button').addEventListener('click', () => {
+    document.getElementById('reset-button').addEventListener('click', () => {
     document.getElementById('twform2').reset();
 
     proponentsContainer.innerHTML = `
@@ -335,10 +336,10 @@ document.getElementById('reset-button').addEventListener('click', () => {
         <button type="button" class="btn btn-success btn-sm add-proponent">Add</button>
     `;
 
-    attachAddProponentListener();
-});
+        attachAddProponentListener();
+    });
 
-attachAddProponentListener();
+    attachAddProponentListener();
 
     departmentSelect.addEventListener('change', () => {
         const departmentId = departmentSelect.value;
@@ -395,4 +396,22 @@ attachAddProponentListener();
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         background-color: white;
     }
+#loadingOverlay {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5); 
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+    z-index: 1050; 
+}
+
+#loadingSpinnerContainer {
+    width: 5rem;
+    height: 5rem;
+    color: #007bff; 
+}
 </style>

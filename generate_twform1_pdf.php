@@ -10,6 +10,12 @@ if (!isset($_SESSION['user_id'])) {
 require 'config/connect.php';
 require_once('TCPDF-main/tcpdf.php');
 
+if (!isset($_GET['tw_form_id']) || !is_numeric($_GET['tw_form_id'])) {
+    die("Error: Invalid or missing tw_form_id.");
+}
+
+$tw_form_id = (int) $_GET['tw_form_id'];
+
 function getTWFormDetails($id) {
     global $conn;
     $query = "
@@ -122,10 +128,7 @@ function GetAssignedPanelist($tw_form_id) {
     return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
-if (!isset($_GET['tw_form_id']) || !is_numeric($_GET['tw_form_id'])) {
-    die("Error: Invalid or missing tw_form_id.");
-}
-$tw_form_id = (int) $_GET['tw_form_id'];
+
 $tw_form = getTWFormDetails($tw_form_id);
 $twform1_details = getTWForm1Details($tw_form_id);  
 $proponents = GetProponents($tw_form_id);  
@@ -142,22 +145,32 @@ $pdf->SetAuthor($tw_form['adviser_firstname'] . ' ' . $tw_form['adviser_lastname
 $pdf->SetTitle('TW Form 1 Details');
 $pdf->SetHeaderData('', 0, 'Research Management Office', date('Y-m-d'), array(0,0,0), array(0,0,0));
 
-$pdf->AddPage();
+$pdf->AddPage('L');
 
 $html = '<h3 style="text-align: center;">TW Form 1 Details</h3>';
 
 $html .= '<table border="1" cellpadding="4" cellspacing="0" style="width: 100%;">';
 $html .= '<tr><th colspan="2" style="background-color: #f2f2f2; text-align: center;">General Information</th></tr>';
-$html .= '<tr><td><strong>Form Type:</strong></td><td>' . htmlspecialchars($tw_form['form_type']) . '</td></tr>';
-$html .= '<tr><td><strong>Institutional Agenda:</strong></td><td>' . htmlspecialchars($tw_form['ir_agenda_name']) . '</td></tr>';
-$html .= '<tr><td><strong>College Agenda:</strong></td><td>' . htmlspecialchars($tw_form['college_agenda_name']) . '</td></tr>';
-$html .= '<tr><td><strong>Department:</strong></td><td>' . htmlspecialchars($tw_form['department_name']) . '</td></tr>';
-$html .= '<tr><td><strong>Course:</strong></td><td>' . htmlspecialchars($tw_form['course_name']) . '</td></tr>';
-$html .= '<tr><td><strong>Research Adviser:</strong></td><td>' . htmlspecialchars($tw_form['adviser_firstname'] . ' ' . $tw_form['adviser_lastname']) . '</td></tr>';
-$html .= '<tr><td><strong>Overall Status:</strong></td><td>' . htmlspecialchars($tw_form['overall_status']) . '</td></tr>';
-$html .= '<tr><td><strong>Comments:</strong></td><td>' . htmlspecialchars($tw_form['comments']) . '</td></tr>';
-$html .= '<tr><td><strong>Submission Date:</strong></td><td>' . htmlspecialchars($tw_form['submission_date']) . '</td></tr>';
-$html .= '<tr><td><strong>Last Updated:</strong></td><td>' . htmlspecialchars($tw_form['last_updated']) . '</td></tr>';
+$html .= '<tr>';
+$html .= '<td><strong>Form Type:</strong> ' . htmlspecialchars($tw_form['form_type']) . '</td>';
+$html .= '<td><strong>Institutional Agenda:</strong> ' . htmlspecialchars($tw_form['ir_agenda_name']) . '</td>';
+$html .= '</tr>';
+$html .= '<tr>';
+$html .= '<td><strong>College Agenda:</strong> ' . htmlspecialchars($tw_form['college_agenda_name']) . '</td>';
+$html .= '<td><strong>Department:</strong> ' . htmlspecialchars($tw_form['department_name']) . '</td>';
+$html .= '</tr>';
+$html .= '<tr>';
+$html .= '<td><strong>Course:</strong> ' . htmlspecialchars($tw_form['course_name']) . '</td>';
+$html .= '<td><strong>Research Adviser:</strong> ' . htmlspecialchars($tw_form['adviser_firstname'] . ' ' . $tw_form['adviser_lastname']) . '</td>';
+$html .= '</tr>';
+$html .= '<tr>';
+$html .= '<td><strong>Overall Status:</strong> ' . htmlspecialchars($tw_form['overall_status']) . '</td>';
+$html .= '<td><strong>Comments:</strong> ' . htmlspecialchars($tw_form['comments']) . '</td>';
+$html .= '</tr>';
+$html .= '<tr>';
+$html .= '<td><strong>Submission Date:</strong> ' . htmlspecialchars($tw_form['submission_date']) . '</td>';
+$html .= '<td><strong>Last Updated:</strong> ' . htmlspecialchars($tw_form['last_updated']) . '</td>';
+$html .= '</tr>';
 $html .= '</table>';
 
 $html .= '<h3>Proponents</h3>';
@@ -184,8 +197,8 @@ $pdf->writeHTML($html, true, false, true, false, '');
 $action = isset($_GET['action']) ? $_GET['action'] : 'I';
 
 if ($action == 'D') {
-    $pdf->Output('tw_form1_' . $tw_form_id . '.pdf', 'D');
+    $pdf->Output('tw_form1_' . $tw_form_id . rand(1000,9999).'.pdf', 'D');
 } else {
-    $pdf->Output('tw_form1_' . $tw_form_id . '.pdf', 'I');
+    $pdf->Output('tw_form1_' . $tw_form_id . rand(1000,9999). '.pdf', 'I');
 }
 ?>
