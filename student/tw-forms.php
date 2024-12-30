@@ -204,15 +204,22 @@
                                                 break;
                                         }
                                         ?>
-                                        <div class="d-flex justify-content-between align-items-center mb-1" style="gap: 5px">
-                                            <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view">View</a>
-                                            <?php if ($pdfPage): ?>
-                                                <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=I" class="btn btn-success btn-sm" target="_blank">Print</a>
-                                                <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=D" class="btn btn-primary btn-sm" target="_blank">Download</a>
-                                            <?php else: ?>
-                                                <span class="text-muted">PDF generation not available for this form type.</span>
-                                            <?php endif; ?>
-                                        </div>
+                                            <div class="d-flex justify-content-between align-items-center mb-1" style="gap: 5px">
+                                                <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view">View</a>
+                                                <?php if ($form['overall_status'] == 'pending'): ?>
+                                                    <form action="delete-twform.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this form?');">
+                                                        <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($form['tw_form_id']); ?>">
+                                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                                    </form>
+                                                <?php endif; ?>
+                                                <?php if ($pdfPage): ?>
+                                                    <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=I" class="btn btn-success btn-sm" target="_blank">Print</a>
+                                                    <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=D" class="btn btn-primary btn-sm" target="_blank">Download</a>
+                                                <?php else: ?>
+                                                    <span class="text-muted">PDF generation not available for this form type.</span>
+                                                <?php endif; ?>
+                                                
+                                            </div>
                                         </td>
 
                                 </tr>

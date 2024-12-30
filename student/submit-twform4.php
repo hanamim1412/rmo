@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $tw_form_id = mysqli_insert_id($conn);
         
-        $twform4_query = "INSERT INTO twform_4 (tw_form_id, thesis_title, Defense_date, time, place, date_created, last_updated) 
+        $twform4_query = "INSERT INTO twform_4 (tw_form_id, thesis_title, Defense_date, time, place, date_submitted, last_updated) 
                           VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
                 $twform4_stmt = mysqli_prepare($conn, $twform4_query);
                 mysqli_stmt_bind_param($twform4_stmt, 'issss', $tw_form_id, $thesis_title, $defense_date, $defense_time, $defense_place);

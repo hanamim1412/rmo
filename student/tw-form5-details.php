@@ -90,7 +90,6 @@ session_start();
                     tw5.defense_date,
                     tw5.time,
                     tw5.place,
-                    tw5.comments,
                     tw5.status,
                     tw5.last_updated
                 FROM TWFORM_5 tw5

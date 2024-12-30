@@ -135,12 +135,43 @@ session_start();
         $stmt->execute();
         return $stmt->get_result();
     }
+    function getEvalCriteria($tw_form_id) {
+        global $conn;
+        $query = "
+            SELECT
+                ev.eval_id,
+                ev.tw_form_id,
+                ev.evaluator_id,
+                ev.presentation,
+                ev.content,
+                ev.organization,
+                ev.mastery,
+                ev.ability,
+                ev.openness,
+                ev.overall_rating,
+                ev.percentage,
+                ev.remarks,
+                ev.date_created
+            FROM eval_criteria ev
+            LEFT JOIN TW_FORMS tw ON ev.tw_form_id = tw.tw_form_id
+            WHERE ev.tw_form_id = ?
+        ";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("i", $tw_form_id);
+        $stmt->execute();
+        
+        $result = $stmt->get_result();
+        $eval_criteria = $result->fetch_assoc();
+        
+        return $eval_criteria;
+    }
 
     $tw_form_id = $_GET['tw_form_id']; 
     $twform_details = getTWFormDetails($tw_form_id); 
     $twform3_details = getTWForm3Details($tw_form_id);  
     $manuscript = manuscript($tw_form_id);
     $panelists = GetAssignedPanelist($tw_form_id);  
+    $eval_criteria = getEvalCriteria($tw_form_id);
 ?>
 <section id="twform-3-details" class="pt-4">
     <div class="header-container pt-4">
@@ -283,22 +314,30 @@ session_start();
                                             <span class="<?= $badgeClass ?>"><?= $form_status ?></span>
                                         </td>
                                         <td>
-                                        <form action="update_form3_status.php" method="POST" style="display: inline;">
-                                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']) ?>">
-                                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
-                                            <select name="status" id="status" class="form-select form-select-sm" style="width: auto;" required>
-                                                <option value="pending" <?= $twform3['status'] === 'pending' ? 'selected' : '' ?>>Pending</option>
-                                                <option value="graded" <?= $twform3['status'] === 'graded' ? 'selected' : '' ?>>Graded</option>
-                                            </select>
-                                            <button type="submit" class="btn btn-success btn-sm">Update Status</button>
-                                        </form>
+                                            <form action="update_form3_status.php" method="POST" style="display: inline;">
+                                                <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']) ?>">
+                                                <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
+                                                <select name="status" id="status" class="form-select form-select-sm" style="width: auto;" required>
+                                                    <option value="pending" <?= $twform3['status'] === 'pending' ? 'selected' : '' ?>>Pending</option>
+                                                    <option value="graded" <?= $twform3['status'] === 'graded' ? 'selected' : '' ?>>Graded</option>
+                                                </select>
+                                                <button type="submit" class="btn btn-success btn-sm">Update Status</button>
+                                            </form>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <?php if ($eval_criteria): ?>
+                                                    <a href="eval_details.php?tw_form_id=<?= htmlspecialchars($twform_details['tw_form_id']) ?>"
+                                                        class="btn btn-warning btn-sm mt-2">View Scores</a>
+                                                <?php else: ?>
+                                                    <span class="badge btn-danger btn-sm"> No Scores Available </span>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
             </div>
-         
+            
 </section>
 
 <script>

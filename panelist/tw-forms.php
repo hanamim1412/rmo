@@ -1,4 +1,5 @@
 <?php
+    // panelist/tw-forms.php 
     session_start();
     if (!isset($_SESSION['user_id'])) {
         $_SESSION['messages'][] = ['tags' => 'warning', 'content' => "You need to log in"];
@@ -13,7 +14,9 @@
 
     function getTWForms() {
         global $conn;
-        $currentUserId = $_SESSION['user_id'];
+        
+        $panelist_id = $_SESSION['user_id']; // Logged-in panelist's user ID
+    
         $query = "
             SELECT 
                 tw.tw_form_id, 
@@ -39,6 +42,8 @@
             LEFT JOIN DEPARTMENTS dep ON tw.department_id = dep.department_id
             LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
             LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'panelist'
+            INNER JOIN assigned_panelists ap ON tw.tw_form_id = ap.tw_form_id
+            WHERE ap.user_id = ? AND tw.form_type IN ('twform_3', 'twform_5')
             ORDER BY tw.last_updated DESC
         ";
     
@@ -46,7 +51,10 @@
         if (!$stmt) {
             die("Database Query Failed: " . mysqli_error($conn));
         }
-        mysqli_stmt_bind_param($stmt, 'i', $currentUserId);
+    
+        // Bind the logged-in panelist's user ID
+        mysqli_stmt_bind_param($stmt, 'i', $panelist_id);
+    
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
     
@@ -70,49 +78,21 @@
         return $requests;
     }
     
-
+    
     $tw_form_id = $_GET['tw_form_id'] ?? null;
-
     $twforms_by_status = getTWForms();
 ?>
 
-<section id="tw-forms">
-    <div class="header-container">
-        <h4 class="text-left">Submitted Forms</h4>
+<section id="tw-forms" class="pt-4">
+    <div class="header-container pt-4">
+        <h4 class="text-left">Submitted Rating Forms</h4>
     </div>
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <a href="javascript:history.back()" class="btn btn-link" style="font-size: 1rem; text-decoration: none; color: black;">
                     <i class="fas fa-arrow-left" style="margin-right: 10px; font-size: 1.2rem;"></i>
                     Back
                 </a>
-                <div class="actions">
-                    <a href="javascript:void(0);" data-bs-toggle="modal" class="badge btn-success text-decoration-none" data-bs-target="#formTypeModal"></i> <strong>Request Form</strong></a>
-                </div>
             </div>
-            <div class="modal fade" id="formTypeModal" tabindex="-1" aria-labelledby="formTypeModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="formTypeModalLabel">Select Form Type</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p>Please select the type of form you want to request:</p>
-                            <div class="list-group">
-                                <a href="twform_1.php" class="list-group-item list-group-item-action">TW Form 1</a>
-                                <a href="twform_2.php" class="list-group-item list-group-item-action">TW Form 2</a>
-                                <a href="twform_3.php" class="list-group-item list-group-item-action">TW Form 3</a>
-                                <a href="twform_4.php" class="list-group-item list-group-item-action">TW Form 4</a>
-                                <a href="twform_5.php" class="list-group-item list-group-item-action">TW Form 5</a>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
         <?php if (!empty($messages)): ?>
             <div class="container mt-3">
                 <?php foreach ($messages as $message): ?>
@@ -141,21 +121,22 @@
         </div>
     
         <div class="row">
-        <?php foreach (['pending', 'approved', 'rejected'] as $status): ?>
+            <?php foreach (['pending', 'approved', 'rejected'] as $status): ?>
             <div id="<?= $status ?>Forms" class="form-section w-100" style="display: <?= $status === 'pending' ? 'block' : 'none'; ?>;">
                 <?php if (!empty($twforms_by_status[$status])): ?>
-                    <table class="table table-bordered table-sm">
-                        <thead>
+                <div class="table-responsive">
+                    <table id="items-table" class="table table-bordered table-sm display">
+                        <thead class="thead-background">
                             <tr>
-                                <th scope="col">#</th>
-                                <th scope="col">Form Type</th>
-                                <th scope="col">College</th>
-                                <th scope="col">Course</th>
-                                <th scope="col">Submitted By</th>
-                                <th scope="col">Research Adviser</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Date</th>
-                                <th scope="col">Action</th>
+                                <th>#</th>
+                                <th>Form Type</th>
+                                <th>College</th>
+                                <th>Course</th>
+                                <th>Submitted By</th>
+                                <th>Research Adviser</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -170,23 +151,54 @@
                                     <td><?= ucfirst($form['overall_status']) ?></td>
                                     <td><?= $form['submission_date'] ?></td>
                                     <td>
-                                        <a href="tw-form-view.php?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm">View</a>
+                                        <?php 
+                                        switch ($form['form_type']) {
+                                            case 'twform_3':
+                                                $viewPage = 'tw-form3-details.php';
+                                                break;
+                                            case 'twform_5':
+                                                $viewPage = 'tw-form5-details.php';
+                                                break;
+                                            default:
+                                                    $_SESSION['messages'][] = [
+                                                        'tags' => 'danger', 
+                                                        'content' => "Unknown form type encountered for Form ID: {$form['tw_form_id']}."
+                                                    ];
+                                                $viewPage = 'tw-forms.php'; 
+                                                break;
+                                        }
+                                        ?>
+                                        <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view">View</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
                     <?php else: ?>
                     <p class="text-center text-muted">No <?= ucfirst($status) ?> forms available.</p>
                 <?php endif; ?>
             </div>
         <?php endforeach; ?>
+        <div id="loadingOverlay" class="d-none">
+            <div id="loadingSpinnerContainer" class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
     </div>
 
 </section>
 
 
 <script>
+$(document).ready(function () {
+    $('#view').on('click', function () {
+        
+        $('#loadingOverlay').removeClass('d-none');
+
+    });
+});
+
         function showTab(tabId, contentId) {
             document.querySelectorAll('.form-section').forEach(section => {
                 section.style.display = 'none';
@@ -230,9 +242,59 @@
             });
         }, 5000);
     });
+
+$(document).ready(function () {
+    $('.table.table-bordered').each(function () {
+        $(this).DataTable({
+            scrollX: true,
+            autoWidth: false,
+            paging: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            pageLength: 5,
+            language: {
+                search: "Search:",
+                lengthMenu: "Show _MENU_ entries",
+                info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                paginate: {
+                    previous: "Prev",
+                    next: "Next"
+                }
+            }
+        }).columns.adjust();
+    });
+});
+
 </script>
 
 <?php
 $content = ob_get_clean();
 include('panelist-master.php');
 ?>
+<style>
+#loadingOverlay {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5); 
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+    z-index: 1050; 
+}
+
+#loadingSpinnerContainer {
+    width: 5rem;
+    height: 5rem;
+    color: #007bff; 
+}
+.thead-background {
+    background-color:rgb(56, 120, 193);
+    color: white;
+}
+</style>
+

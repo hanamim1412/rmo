@@ -32,7 +32,6 @@ if ($resultCheck->num_rows === 0) {
     exit();
 }
 
-// Update the status of the proposed title
 $queryUpdate = "UPDATE proposed_title SET is_selected = ? WHERE proposed_title_id = ?";
 $stmtUpdate = $conn->prepare($queryUpdate);
 $stmtUpdate->bind_param("ii", $new_status, $proposed_title_id);

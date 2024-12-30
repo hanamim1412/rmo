@@ -1,12 +1,12 @@
 <?php 
-// student/twform-4-details.php
+// dean/twform-4-details.php
 session_start();
     if (!isset($_SESSION['user_id'])) {
         $_SESSION['messages'][] = ['tags' => 'warning', 'content' => "You need to log in"];
         header("Location: ../login.php");
         exit();
     }
-    include('student-master.php');
+    include('dean-master.php');
     require '../config/connect.php';
     include '../messages.php';
     $title = "TW form 4 Details";
@@ -315,7 +315,7 @@ session_start();
 
 <?php
 $content = ob_get_clean();
-include('student-master.php');
+include('dean-master.php');
 ?>
 <style>
     #items-table .thead-background {
