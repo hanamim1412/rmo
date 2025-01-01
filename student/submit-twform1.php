@@ -49,8 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $query = "INSERT INTO twform_1 (tw_form_id, year_level, date_created)
                   VALUES (?, ?, NOW())";
         $stmt = mysqli_prepare($conn, $query);
-        $year_level = $_POST['year_level']; 
-        mysqli_stmt_bind_param($stmt, 'ii', $tw_form_id, $year_level);
+        
+        mysqli_stmt_bind_param($stmt, 'is', $tw_form_id, $year_level);
         mysqli_stmt_execute($stmt);
 
         if (isset($_POST['student_firstnames']) && isset($_POST['student_lastnames'])) {

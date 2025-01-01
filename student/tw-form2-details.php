@@ -179,8 +179,9 @@ session_start();
                 <span class="<?= $badgeClass ?>"><?= $status ?></span></div>
                 <div><strong>Department:</strong> <?= htmlspecialchars($twform_details['department_name']) ?></div>
                 <div><strong>Course:</strong> <?= ucwords(htmlspecialchars($twform_details['course_name']))?></div>
+                <div><strong>Institutional Research Agenda:</strong> <?= htmlspecialchars($twform_details['ir_agenda_name']) ?></div> 
+                <div><strong>College Research Agenda:</strong> <?= htmlspecialchars($twform_details['col_agenda_name']) ?></div> 
                 <div><strong>Comments:</strong> <?= htmlspecialchars($twform_details['comments']) ?></div> 
-                
                 <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
                 <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
                 <div>

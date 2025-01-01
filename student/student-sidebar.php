@@ -39,7 +39,7 @@ mysqli_stmt_close($stmt);
         </li>
         <li class="nav-item">
             <a href="reports.php" class="nav-link">
-            <i class="fa-solid fa-chart-column"></i> <span>Analytics</span>
+            <i class="fa-regular fa-folder-open"></i> <span>Reports</span>
             </a>
         </li>
         <li class="nav-item">

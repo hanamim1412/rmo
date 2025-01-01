@@ -63,12 +63,16 @@ function getInstitutionalAgenda() {
 }
 function getCollegeAgenda($department_id) {
     global $conn;
-    $query = "SELECT agenda_id, agenda_name FROM college_research_agenda";
-    $result = mysqli_query($conn, $query);
-
-    if (!$result) {
+    $query = "SELECT agenda_id, agenda_name FROM college_research_agenda WHERE department_id = ?";
+    $stmt = mysqli_prepare($conn, $query);
+    
+    if (!$stmt) {
         die("Database Query Failed: " . mysqli_error($conn));
     }
+    
+    mysqli_stmt_bind_param($stmt, 'i', $department_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
 
     $col_agendas = [];
     while ($row = mysqli_fetch_assoc($result)) {
@@ -77,6 +81,7 @@ function getCollegeAgenda($department_id) {
 
     return $col_agendas;
 }
+
 function getAdvisers($department_id) {
     global $conn;
     $query = "SELECT user_id, firstname, lastname 
@@ -173,15 +178,6 @@ $ir_agendas = getInstitutionalAgenda();
                     <label>College Research Agenda</label>
                     <select name="col_agenda_id" class="form-control form-select select-sm" required>
                         <option value="">Select Agenda</option>
-                        <?php if (!empty($col_agendas)): ?>
-                            <?php foreach ($col_agendas as $agenda): ?>
-                                <option value="<?= htmlspecialchars($agenda['agenda_id']) ?>">
-                                    <?= htmlspecialchars($agenda['agenda_name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <option value="">No agendas found</option>
-                        <?php endif; ?>
                     </select>
                 </div>
             </div>
@@ -271,6 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const departmentSelect = document.querySelector('select[name="department_id"]');
     const courseSelect = document.querySelector('select[name="course_id"]');
     const adviserSelect = document.querySelector('select[name="adviser_id"]');
+    const colAgendaSelect = document.querySelector('select[name="col_agenda_id"]');
     const proponentsContainer = document.getElementById('proponents-container');
 
         function addProponent() {
@@ -346,9 +343,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         courseSelect.innerHTML = '<option value="">Select Course</option>';
         adviserSelect.innerHTML = '<option value="">Select Adviser</option>';
+        colAgendaSelect.innerHTML = '<option value="">Select Agenda</option>';
 
         if (departmentId) {
-            fetch(`form.php?action=get_courses_and_advisers&department_id=${departmentId}`)
+            fetch(`form.php?action=get_courses_and_advisers_agenda&department_id=${departmentId}`)
                 .then(response => response.json())
                 .then(data => {
                     data.courses.forEach(course => {
@@ -364,6 +362,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         option.textContent = `${adviser.firstname} ${adviser.lastname}`;
                         adviserSelect.appendChild(option);
                     });
+                    data.col_agendas.forEach(agenda => {
+                        const option = document.createElement('option');
+                        option.value = agenda.agenda_id;
+                        option.textContent = agenda.agenda_name;
+                        colAgendaSelect.appendChild(option);
+                    });
+                    
                 })
                 .catch(error => console.error('Error fetching courses and advisers:', error));
         }

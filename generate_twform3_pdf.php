@@ -15,6 +15,18 @@ if (!isset($_GET['tw_form_id']) || !is_numeric($_GET['tw_form_id'])) {
 }
 
 $tw_form_id = (int) $_GET['tw_form_id'];
+$user_id = $_SESSION['user_id'];
+
+$query = "SELECT user_type FROM ACCOUNTS WHERE user_id = ?";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+$user_type = $user['user_type'];
+$is_dean = ($user_type === 'dean');
+$is_panelist = ($user_type === 'panelist');
+$is_advisor = ($user_type === 'subject_advisor');
 
 function getTWFormDetails($id) {
     global $conn;
@@ -76,6 +88,73 @@ function getTWForm3Details($tw_form_id) {
     $stmt->execute();
     return $stmt->get_result();
 }
+
+function GetAssignedPanelist($tw_form_id) {
+    global $conn;
+    $query = "
+        SELECT
+            panelist.assigned_panelist_id,
+            panelist.tw_form_id,
+            acc.firstname AS panelist_firstname,
+            acc.lastname AS panelist_lastname
+        FROM assigned_panelists panelist
+        LEFT JOIN TW_FORMS tw ON panelist.tw_form_id = tw.tw_form_id
+        LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id
+        WHERE panelist.tw_form_id = ?
+    ";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $tw_form_id);  
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function getEvalCriteria($tw_form_id, $evaluator_id = null) {
+    global $conn;
+    $query = "
+        SELECT
+            ev.eval_id,
+            ev.tw_form_id,
+            ev.evaluator_id,
+            acc.firstname as eval_firstname,
+            acc.lastname as eval_lastname,
+            ev.presentation,
+            ev.content,
+            ev.organization,
+            ev.mastery,
+            ev.ability,
+            ev.openness,
+            ev.overall_rating,
+            ev.percentage,
+            ev.remarks,
+            ev.date_created
+        FROM eval_criteria ev
+        LEFT JOIN TW_FORMS tw ON ev.tw_form_id = tw.tw_form_id
+        LEFT JOIN ACCOUNTS acc ON ev.evaluator_id = acc.user_id
+        WHERE ev.tw_form_id = ?
+    ";
+
+    if ($evaluator_id !== null) {
+        $query .= " AND ev.evaluator_id = ?";
+    }
+
+    $stmt = $conn->prepare($query);
+
+    if ($evaluator_id !== null) {
+        $stmt->bind_param("ii", $tw_form_id, $evaluator_id);
+    } else {
+        $stmt->bind_param("i", $tw_form_id);
+    }
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $eval_criteria = [];
+    while ($row = $result->fetch_assoc()) {
+        $eval_criteria[] = $row;
+    }
+
+    return $eval_criteria;
+}
 $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
 $pdf->SetCreator(PDF_CREATOR);
 $pdf->SetAuthor('Research Management Office');
@@ -88,6 +167,8 @@ $pdf->AddPage();
 
 $twform = getTWFormDetails($tw_form_id);
 $twform3_details = getTWForm3Details($tw_form_id);
+$panelists = GetAssignedPanelist($tw_form_id); 
+$eval_criteria_list = getEvalCriteria($tw_form_id, $is_panelist ? $user_id : null);
 
 $html = '<h3 style="text-align: center;">TW Form 3 Details</h3>';
 
@@ -99,9 +180,21 @@ $html .= '<tr><td><strong>Research Agenda (College):</strong></td><td>' . htmlsp
 $html .= '<tr><td><strong>Department:</strong></td><td>' . htmlspecialchars($twform['department_name']) . '</td></tr>';
 $html .= '<tr><td><strong>Course:</strong></td><td>' . htmlspecialchars($twform['course_name']) . '</td></tr>';
 $html .= '<tr><td><strong>Research Adviser:</strong></td><td>' . htmlspecialchars($twform['adviser_firstname'] . ' ' . $twform['adviser_lastname']) . '</td></tr>';
+$html .= '<tr><td><strong>Assigned Panelists:</strong></td><td>';
+    if (count($panelists) > 0) {
+        $panelistNames = [];
+        foreach ($panelists as $panelist) {
+            $panelistNames[] = htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname']);
+        }
+        $html .= implode(', ', $panelistNames);
+    } else {
+        $html .= 'No assigned panelists yet';
+    }
+    $html .= '</td></tr>';
 $html .= '<tr><td><strong>Status:</strong></td><td>' . htmlspecialchars($twform['overall_status']) . '</td></tr>';
 $html .= '<tr><td><strong>Comments:</strong></td><td>' . htmlspecialchars($twform['comments']) . '</td></tr>';
 $html .= '<tr><td><strong>Submission Date:</strong></td><td>' . date("Y-m-d", strtotime($twform['submission_date'])) . '</td></tr>';
+
 $html .= '</table>';
 
 $html .= '<table border="1" cellpadding="4" cellspacing="0" style="width: 100%;">';
@@ -128,18 +221,48 @@ foreach ($twform3_details as $twform3) {
     }
 
     $html .= '<tr><td><strong>Venue:</strong></td><td>' . htmlspecialchars($twform3['place']) . '</td></tr>';
-    $html .= '<tr><td><strong>Status:</strong></td><td>' . htmlspecialchars($twform3['status']) . '</td></tr>';
+    $html .= '<tr><td><strong>Rating Status:</strong></td><td>' . htmlspecialchars($twform3['status']) . '</td></tr>';
 }
 
 $html .= '</table>';
+
+$html .= '<h4>Evaluation Criteria</h4>';
+
+if ($eval_criteria_list) {
+    foreach ($eval_criteria_list as $eval_criteria) {
+        
+        if ($is_dean || $is_advisor || ($is_panelist && $eval_criteria['evaluator_id'] == $user_id)) {
+            $html .= '<table border="1" cellpadding="4" cellspacing="0" style="width: 100%;">';
+            $html .= '<thead><tr><th colspan="2" class="text-center"><strong>Evaluation Criteria</strong></th><th class="text-center"><strong>Score</strong></th></tr></thead>';
+            $html .= '<tbody>';
+            $html .= '<tr><td colspan="2"><strong>Evaluator</strong></td><td>' . ucwords(htmlspecialchars($eval_criteria['eval_firstname'])) . ' ' . ucwords(htmlspecialchars($eval_criteria['eval_lastname'])) . '</td></tr>';
+            $html .= '<tr><td rowspan="3" class="align-middle"><strong>Presentation of the Paper (50 pts.)</strong></td><td>Presentation (15 pts.)</td><td>' . htmlspecialchars($eval_criteria['presentation']) . '</td></tr>';
+            $html .= '<tr><td>Content (25 pts.)</td><td>' . htmlspecialchars($eval_criteria['content']) . '</td></tr>';
+            $html .= '<tr><td>Organization (10 pts.)</td><td>' . htmlspecialchars($eval_criteria['organization']) . '</td></tr>';
+            $html .= '<tr><td colspan="2"><strong>Mastery of the Subject Matter (20 pts.)</strong></td><td>' . htmlspecialchars($eval_criteria['mastery']) . '</td></tr>';
+            $html .= '<tr><td colspan="2"><strong>Ability to Respond to Questions (20 pts.)</strong></td><td>' . htmlspecialchars($eval_criteria['ability']) . '</td></tr>';
+            $html .= '<tr><td colspan="2"><strong>Openness Towards the Given Suggestions (10 pts.)</strong></td><td>' . htmlspecialchars($eval_criteria['openness']) . '</td></tr>';
+            $html .= '<tr><td colspan="2"><strong>Overall Rating (Sum of Scores)</strong></td><td>' . htmlspecialchars($eval_criteria['overall_rating']) . '</td></tr>';
+            $percentage = htmlspecialchars($eval_criteria['percentage']);
+            $remarks = $eval_criteria['percentage'] < 75 ? "(Failed)" : "(Passed)";
+            $html .= '<tr><td colspan="2"><strong>Percentage</strong></td><td>' . $percentage . ' ' . $remarks . '</td></tr>';
+            $html .= '<tr><td colspan="2"><strong>Remarks</strong></td><td>' . htmlspecialchars($eval_criteria['remarks']) . '</td></tr>';
+            $html .= '</tbody>';
+            $html .= '</table>';
+        }
+    }
+
+} else {
+    $html .= '<p>No evaluation made for this form.</p>';
+}
 
 $pdf->writeHTML($html, true, false, true, false, '');
 
 $action = isset($_GET['action']) ? $_GET['action'] : 'I';
 
 if ($action == 'D') {
-    $pdf->Output('tw_form2_' . $tw_form_id . rand(1000,9999).'.pdf', 'D');
+    $pdf->Output('tw_form3_' . $tw_form_id . rand(1000,9999).'.pdf', 'D');
 } else {
-    $pdf->Output('tw_form2_' . $tw_form_id . rand(1000,9999). '.pdf', 'I');
+    $pdf->Output('tw_form3_' . $tw_form_id . rand(1000,9999). '.pdf', 'I');
 }
 ?>

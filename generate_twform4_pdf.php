@@ -62,7 +62,6 @@ function getTWForm4Details($tw_form_id) {
             tw4.defense_date,
             tw4.time,
             tw4.place,
-            tw4.comments,
             tw4.date_submitted,
             tw4.last_updated
         FROM TWFORM_4 tw4
@@ -173,8 +172,8 @@ $pdf->writeHTML($html, true, false, true, false, '');
 $action = isset($_GET['action']) ? $_GET['action'] : 'I';
 
 if ($action == 'D') {
-    $pdf->Output('tw_form2_' . $tw_form_id . rand(1000,9999).'.pdf', 'D');
+    $pdf->Output('tw_form4_' . $tw_form_id . rand(1000,9999).'.pdf', 'D');
 } else {
-    $pdf->Output('tw_form2_' . $tw_form_id . rand(1000,9999). '.pdf', 'I');
+    $pdf->Output('tw_form4_' . $tw_form_id . rand(1000,9999). '.pdf', 'I');
 }
 ?>

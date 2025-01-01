@@ -317,7 +317,7 @@ session_start();
                                         </td>
                                         <td>
                                                 <div class="d-flex justify-content-end align-items-center" style="gap: 10px;">
-                                                    <?php if($twform3['status'] === 'pending'): ?>
+                                                    <?php if($twform5['status'] === 'pending'): ?>
                                                         <a href="evaluation_form.php?tw_form_id=<?= $twform_details['tw_form_id'] ?>" 
                                                             class="btn btn-primary btn-sm mt-2">Add Scores</a>
                                                         </a>
@@ -337,10 +337,7 @@ session_start();
                             </tbody>
                         </table>
             </div>
-        <div class="table-container mt-4">       
-            <h5><strong>Evaluator: </strong><?= ucwords(htmlspecialchars($eval_criteria['eval_firstname']))
-                .' '. ucwords(htmlspecialchars($eval_criteria['eval_lastname'])) ?>
-            </h5>                               
+        <div class="table-container mt-4">                                    
             <table id="items-table" class="table table-bordered display">
                 <thead class="thead-background">
                     <tr>
@@ -350,6 +347,10 @@ session_start();
                 </thead>
                 <tbody>
                     <?php if ($eval_criteria): ?>
+                        <tr>
+                            <td colspan="2"><h5>Evaluator</h5></td>
+                            <td><h5><?= ucwords(htmlspecialchars($eval_criteria['eval_firstname'])).' '. ucwords(htmlspecialchars($eval_criteria['eval_lastname'])) ?></h5></td>
+                        </tr>
                         <tr>
                             <td rowspan="3" class="align-middle">Presentation of the Paper (50 pts.)</td>
                             <td>Presentation (15 pts.)</td>

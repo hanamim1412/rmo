@@ -176,22 +176,27 @@
                                         switch ($form['form_type']) {
                                             case 'twform_1':
                                                 $viewPage = 'tw-form1-details.php';
+                                                $editPage = 'twform1-edit.php';
                                                 $pdfPage = 'generate_twform1_pdf.php';
                                                 break;
                                             case 'twform_2':
                                                 $viewPage = 'tw-form2-details.php';
+                                                $editPage = 'twform2-edit.php';
                                                 $pdfPage = 'generate_twform2_pdf.php';
                                                 break;
                                             case 'twform_3':
                                                 $viewPage = 'tw-form3-details.php';
+                                                $editPage = 'twform3-edit.php';
                                                 $pdfPage = 'generate_twform3_pdf.php';
                                                 break;
                                             case 'twform_4':
                                                 $viewPage = 'tw-form4-details.php';
+                                                $editPage = 'twform4-edit.php';
                                                 $pdfPage = 'generate_twform4_pdf.php';
                                                 break;
                                             case 'twform_5':
                                                 $viewPage = 'tw-form5-details.php';
+                                                $editPage = 'twform5-edit.php';
                                                 $pdfPage = 'generate_twform5_pdf.php';
                                                 break;
                                             default:
@@ -207,6 +212,7 @@
                                             <div class="d-flex justify-content-between align-items-center mb-1" style="gap: 5px">
                                                 <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view">View</a>
                                                 <?php if ($form['overall_status'] == 'pending'): ?>
+                                                    <a href="<?= $editPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-primary btn-sm" id="edit">Edit</a>
                                                     <form action="delete-twform.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this form?');">
                                                         <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($form['tw_form_id']); ?>">
                                                         <button type="submit" class="btn btn-danger btn-sm">Delete</button>

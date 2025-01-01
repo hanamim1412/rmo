@@ -1,8 +1,8 @@
 <?php
 require '../config/connect.php';
 
-if (isset($_GET['action']) && $_GET['action'] === 'get_courses_and_advisers') {
-    $department_id = isset($_GET['department_id']) ? (int)$_GET['department_id'] : 0;
+if (isset($_GET['action']) && $_GET['action'] === 'get_courses_and_advisers_agenda') {
+    $department_id = isset($_GET['department_id']) ? (int) $_GET['department_id'] : 0;
 
     if ($department_id > 0) {
         
@@ -30,13 +30,30 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_courses_and_advisers') {
             $advisers[] = $row;
         }
 
-        header('Content-Type: application/json');
-        echo json_encode(['courses' => $courses, 'advisers' => $advisers]);
-    } else {
-        echo json_encode(['courses' => [], 'advisers' => []]);
-    }
+        $queryAgenda = "SELECT agenda_id, agenda_name FROM college_research_agenda WHERE department_id = ?";
+        $stmtAgenda = mysqli_prepare($conn, $queryAgenda);
+        mysqli_stmt_bind_param($stmtAgenda, 'i', $department_id);
+        mysqli_stmt_execute($stmtAgenda);
+        $resultAgenda = mysqli_stmt_get_result($stmtAgenda);
 
+        $col_agendas = [];
+        while ($row = mysqli_fetch_assoc($resultAgenda)) {
+            $col_agendas[] = $row;
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'courses' => $courses,
+            'advisers' => $advisers,
+            'col_agendas' => $col_agendas
+        ]);
+    } else {
+        echo json_encode([
+            'courses' => [],
+            'advisers' => [],
+            'col_agendas' => []
+        ]);
+    }
     exit();
 }
-
 ?>

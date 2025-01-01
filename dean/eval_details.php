@@ -61,7 +61,9 @@ $eval_criteria_list = getEvalCriteria($tw_form_id);
         Back
     </a>
 
-    <div class="table-container mt-4">        
+    <div class="table-container mt-4">
+    <?php if ($eval_criteria_list): ?>
+        <?php foreach ($eval_criteria_list as $eval_criteria): ?>        
         <table id="items-table" class="table table-bordered display">
             <thead class="thead-background">
                 <tr>
@@ -70,8 +72,7 @@ $eval_criteria_list = getEvalCriteria($tw_form_id);
                 </tr>
             </thead>
             <tbody>
-                <?php if ($eval_criteria_list): ?>
-                    <?php foreach ($eval_criteria_list as $eval_criteria): ?>
+                
                         <tr>
                             <td colspan="2"><h5>Evaluator</h5></td>
                             <td><h5><?= ucwords(htmlspecialchars($eval_criteria['eval_firstname'])).' '. ucwords(htmlspecialchars($eval_criteria['eval_lastname'])) ?></h5></td>

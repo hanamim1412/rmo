@@ -11,66 +11,83 @@
     $title = "TW forms";
     ob_start();
 
-    function getTWForms() {
-        global $conn;
-    
-        $query = "
-            SELECT 
-                tw.tw_form_id, 
-                tw.form_type,
-                tw.user_id,
-                tw.ir_agenda_id,
-                tw.col_agenda_id,
-                tw.department_id AS department,
-                tw.course_id AS course,
-                tw.research_adviser_id AS adviser,
-                tw.comments,
-                tw.overall_status,
-                tw.submission_date,
-                tw.last_updated,
-                u.firstname AS student_firstname, 
-                u.lastname AS student_lastname,
-                dep.department_name AS department_name,
-                cou.course_name AS course_name,
-                advisor.firstname AS adviser_firstname,
-                advisor.lastname AS adviser_lastname
-            FROM TW_FORMS tw
-            LEFT JOIN ACCOUNTS u ON tw.user_id = u.user_id
-            LEFT JOIN DEPARTMENTS dep ON tw.department_id = dep.department_id
-            LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
-            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'panelist'
-            ORDER BY tw.last_updated DESC
-        ";
-    
-        $stmt = mysqli_prepare($conn, $query);
-        if (!$stmt) {
-            die("Database Query Failed: " . mysqli_error($conn));
-        }
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-    
-        if (!$result) {
-            die("Database Query Failed: " . mysqli_error($conn));
-        }
-    
-        $requests = [
-            'pending' => [],
-            'approved' => [],
-            'rejected' => []
-        ];
-    
-        while ($row = mysqli_fetch_assoc($result)) {
-            $status = strtolower($row['overall_status']); 
-            if (isset($requests[$status])) {
-                $requests[$status][] = $row;
-            }
-        }
-    
-        return $requests;
+    $user_id = $_SESSION['user_id'];
+$query = "SELECT department_id FROM ACCOUNTS WHERE user_id = ?";
+$stmt = mysqli_prepare($conn, $query);
+if (!$stmt) {
+    die("Database Query Failed: " . mysqli_error($conn));
+}
+mysqli_stmt_bind_param($stmt, "i", $user_id);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+if (!$result || mysqli_num_rows($result) === 0) {
+    die("Unable to fetch department information for the logged-in user.");
+}
+$dean_data = mysqli_fetch_assoc($result);
+$dean_department_id = $dean_data['department_id'];
+
+function getTWForms($dean_department_id) {
+    global $conn;
+
+    $query = "
+        SELECT 
+            tw.tw_form_id, 
+            tw.form_type,
+            tw.user_id,
+            tw.ir_agenda_id,
+            tw.col_agenda_id,
+            tw.department_id AS department,
+            tw.course_id AS course,
+            tw.research_adviser_id AS adviser,
+            tw.comments,
+            tw.overall_status,
+            tw.submission_date,
+            tw.last_updated,
+            u.firstname AS student_firstname, 
+            u.lastname AS student_lastname,
+            dep.department_name AS department_name,
+            cou.course_name AS course_name,
+            advisor.firstname AS adviser_firstname,
+            advisor.lastname AS adviser_lastname
+        FROM TW_FORMS tw
+        LEFT JOIN ACCOUNTS u ON tw.user_id = u.user_id
+        LEFT JOIN DEPARTMENTS dep ON tw.department_id = dep.department_id
+        LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
+        LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'panelist'
+        WHERE tw.department_id = ?  -- Filter by dean's department_id
+        ORDER BY tw.last_updated DESC
+    ";
+
+    $stmt = mysqli_prepare($conn, $query);
+    if (!$stmt) {
+        die("Database Query Failed: " . mysqli_error($conn));
     }
-    
-    $tw_form_id = $_GET['tw_form_id'] ?? null;
-    $twforms_by_status = getTWForms();
+    mysqli_stmt_bind_param($stmt, "i", $dean_department_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    if (!$result) {
+        die("Database Query Failed: " . mysqli_error($conn));
+    }
+
+    $requests = [
+        'pending' => [],
+        'approved' => [],
+        'rejected' => []
+    ];
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        $status = strtolower($row['overall_status']); 
+        if (isset($requests[$status])) {
+            $requests[$status][] = $row;
+        }
+    }
+
+    return $requests;
+}
+
+$tw_form_id = $_GET['tw_form_id'] ?? null;
+$twforms_by_status = getTWForms($dean_department_id);
 ?>
 
 <section id="tw-forms" class="pt-4">

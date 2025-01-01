@@ -168,20 +168,31 @@ $html .= '<td><strong>Overall Status:</strong> ' . htmlspecialchars($tw_form['ov
 $html .= '<td><strong>Comments:</strong> ' . htmlspecialchars($tw_form['comments']) . '</td>';
 $html .= '</tr>';
 $html .= '<tr>';
+$html .= '<td><strong>Assigned Panelists:</strong> ';
+if (count($panelists) > 0) {
+    $panelistNames = [];
+    foreach ($panelists as $panelist) {
+        $panelistNames[] = htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname']);
+    }
+    $html .= implode(', ', $panelistNames);
+} else {
+    $html .= 'No assigned panelists yet';
+}
+
+$html .= '</td>';
+$html .= '<td><strong>Proponents:</strong>';
+    
+$proponentNames = [];
+foreach ($proponents as $proponent) {
+    $proponentNames[] = htmlspecialchars($proponent['firstname'] . ' ' . $proponent['lastname']);
+}
+$html .= implode(', ', $proponentNames);
+$html .= '</td></tr>';
+$html .= '<tr>';
 $html .= '<td><strong>Submission Date:</strong> ' . htmlspecialchars($tw_form['submission_date']) . '</td>';
 $html .= '<td><strong>Last Updated:</strong> ' . htmlspecialchars($tw_form['last_updated']) . '</td>';
 $html .= '</tr>';
 $html .= '</table>';
-
-$html .= '<h3>Proponents</h3>';
-$html .= '<table border="1" cellpadding="4" cellspacing="0" style="width: 100%;">';
-$html .= '<thead><tr><th>First Name</th><th>Last Name</th></tr></thead><tbody>';
-foreach ($proponents as $proponent) {
-    $html .= '<tr><td>' . htmlspecialchars($proponent['firstname']) . '</td>';
-    $html .= '<td>' . htmlspecialchars($proponent['lastname']) . '</td></tr>';
-}
-$html .= '</tbody></table>';
-
 $html .= '<h3>Proposed Titles</h3>';
 $html .= '<table border="1" cellpadding="4" cellspacing="0" style="width: 100%;">';
 $html .= '<thead><tr><th>Title</th><th>Rationale</th><th>Selected</th></tr></thead><tbody>';

@@ -306,21 +306,23 @@ session_start();
                                             <span class="<?= $badgeClass ?>"><?= $form_status ?></span>
                                         </td>
                                         <td>
-                                                <div class="d-flex justify-content-end align-items-center" style="gap: 10px;">
-                                                    <?php if($twform3['status'] === 'pending'): ?>
-                                                        <a href="evaluation_form.php?tw_form_id=<?= $twform_details['tw_form_id'] ?>" 
-                                                            class="btn btn-primary btn-sm mt-2">Add Scores</a>
-                                                        </a>
-                                                    <?php endif; ?>
-                                                    <?php if($eval_criteria): ?>
-                                                        <a href="edit-evaluation_form.php?tw_form_id=<?= htmlspecialchars($twform_details['tw_form_id'])?>" class="btn btn-warning btn-sm mt-2">Edit Scores</a>
-                                                            <form action="delete-evalform.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this Evaluation?');">
-                                                                <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id'])?>">
-                                                                <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']) ?>">
-                                                                <button type="submit" class="btn btn-danger btn-sm mt-2">Delete Scores</button>
-                                                            </form>
-                                                    <?php endif; ?>
-                                                </div>
+                                        <div class="d-flex justify-content-end align-items-center" style="gap: 10px;">
+                                            <?php if ($twform3['status'] === 'pending' && empty($eval_criteria)): ?>
+                                                <a href="evaluation_form.php?tw_form_id=<?= htmlspecialchars($twform_details['tw_form_id']) ?>" 
+                                                class="btn btn-success btn-sm mt-2">Add Scores</a>
+                                            <?php endif; ?>
+                                            
+                                            <?php if (!empty($eval_criteria)): ?>
+                                                <a href="edit-evaluation_form.php?tw_form_id=<?= htmlspecialchars($twform_details['tw_form_id']) ?>" 
+                                                class="btn btn-warning btn-sm mt-2">Edit Scores</a>
+                                                <form action="delete-evalform.php" method="POST" 
+                                                    onsubmit="return confirm('Are you sure you want to delete this Evaluation?');" style="display: inline-block;">
+                                                    <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']) ?>">
+                                                    <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']) ?>">
+                                                    <button type="submit" class="btn btn-danger btn-sm mt-2">Delete Scores</button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -328,9 +330,7 @@ session_start();
                         </table>
             </div>
         <div class="table-container mt-4">       
-            <h5><strong>Evaluator: </strong><?= ucwords(htmlspecialchars($eval_criteria['eval_firstname']))
-                .' '. ucwords(htmlspecialchars($eval_criteria['eval_lastname'])) ?>
-            </h5>                               
+                                      
             <table id="items-table" class="table table-bordered display">
                 <thead class="thead-background">
                     <tr>
@@ -340,6 +340,10 @@ session_start();
                 </thead>
                 <tbody>
                     <?php if ($eval_criteria): ?>
+                        <tr>
+                            <td colspan="2"><h5>Evaluator</h5></td>
+                            <td><h5><?= ucwords(htmlspecialchars($eval_criteria['eval_firstname'])).' '. ucwords(htmlspecialchars($eval_criteria['eval_lastname'])) ?></h5></td>
+                        </tr>
                         <tr>
                             <td rowspan="3" class="align-middle">Presentation of the Paper (50 pts.)</td>
                             <td>Presentation (15 pts.)</td>
