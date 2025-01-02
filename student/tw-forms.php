@@ -177,27 +177,22 @@
                                             case 'twform_1':
                                                 $viewPage = 'tw-form1-details.php';
                                                 $editPage = 'twform1-edit.php';
-                                                $pdfPage = 'generate_twform1_pdf.php';
                                                 break;
                                             case 'twform_2':
                                                 $viewPage = 'tw-form2-details.php';
                                                 $editPage = 'twform2-edit.php';
-                                                $pdfPage = 'generate_twform2_pdf.php';
                                                 break;
                                             case 'twform_3':
                                                 $viewPage = 'tw-form3-details.php';
                                                 $editPage = 'twform3-edit.php';
-                                                $pdfPage = 'generate_twform3_pdf.php';
                                                 break;
                                             case 'twform_4':
                                                 $viewPage = 'tw-form4-details.php';
                                                 $editPage = 'twform4-edit.php';
-                                                $pdfPage = 'generate_twform4_pdf.php';
                                                 break;
                                             case 'twform_5':
                                                 $viewPage = 'tw-form5-details.php';
                                                 $editPage = 'twform5-edit.php';
-                                                $pdfPage = 'generate_twform5_pdf.php';
                                                 break;
                                             default:
                                                 $_SESSION['messages'][] = [
@@ -205,7 +200,6 @@
                                                     'content' => "Unknown form type encountered for Form ID: {$form['tw_form_id']}."
                                                 ];
                                                 $viewPage = 'tw-forms.php'; 
-                                                $pdfPage = '';  
                                                 break;
                                         }
                                         ?>
@@ -217,12 +211,6 @@
                                                         <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($form['tw_form_id']); ?>">
                                                         <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                                                     </form>
-                                                <?php endif; ?>
-                                                <?php if ($pdfPage): ?>
-                                                    <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=I" class="btn btn-success btn-sm" target="_blank">Print</a>
-                                                    <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=D" class="btn btn-primary btn-sm" target="_blank">Download</a>
-                                                <?php else: ?>
-                                                    <span class="text-muted">PDF generation not available for this form type.</span>
                                                 <?php endif; ?>
                                                 
                                             </div>

@@ -5,101 +5,97 @@
         header("Location: ../login.php");
         exit();
     }
-    include('dean-master.php');
+    include('student-master.php');
     require '../config/connect.php';
     include '../messages.php';
     $title = "TW forms";
     ob_start();
 
-    $user_id = $_SESSION['user_id'];
+    $user_type = $_SESSION['user_type'];
 
-$query = "SELECT department_id FROM ACCOUNTS WHERE user_id = ?";
-$stmt = mysqli_prepare($conn, $query);
-if (!$stmt) {
-    die("Database Query Failed: " . mysqli_error($conn));
-}
-mysqli_stmt_bind_param($stmt, "i", $user_id);
-mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
-if (!$result || mysqli_num_rows($result) === 0) {
-    die("Unable to fetch department information for the logged-in user.");
-}
-$dean_data = mysqli_fetch_assoc($result);
-$dean_department_id = $dean_data['department_id'];
-
-function getTWForms($dean_department_id, $twform_type = null, $overall_status = null) {
-    global $conn;
+    $is_student = ($user_type === 'student');
+    function getTWForms($twform_type = null, $overall_status = null) {
+        global $conn;
+        $currentUserId = $_SESSION['user_id'];
+        $department_id = $_SESSION['department_id'];
+        
+        $query = "
+            SELECT 
+                tw.tw_form_id, 
+                tw.form_type,
+                tw.user_id,
+                ira.ir_agenda_name AS ir_agenda,
+                col_agenda.agenda_name AS col_agenda,
+                tw.department_id AS department,
+                tw.course_id AS course,
+                tw.research_adviser_id AS adviser,
+                tw.comments,
+                tw.overall_status,
+                tw.submission_date,
+                tw.last_updated,
+                u.firstname AS student_firstname, 
+                u.lastname AS student_lastname,
+                dep.department_name AS department_name,
+                cou.course_name AS course_name,
+                advisor.firstname AS adviser_firstname,
+                advisor.lastname AS adviser_lastname
+            FROM TW_FORMS tw
+            LEFT JOIN ACCOUNTS u ON tw.user_id = u.user_id
+            LEFT JOIN DEPARTMENTS dep ON tw.department_id = dep.department_id
+            LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
+            LEFT JOIN institutional_research_agenda ira ON tw.ir_agenda_id = ira.ir_agenda_id
+            LEFT JOIN college_research_agenda col_agenda ON tw.col_agenda_id = col_agenda.agenda_id
+            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'panelist'
+            WHERE tw.user_id = ?";
+        
+        $params = [$currentUserId];
+        $types = 'i';
     
-    $query = "
-        SELECT 
-            tw.tw_form_id, 
-            tw.form_type,
-            tw.user_id,
-            ira.ir_agenda_name AS ir_agenda,
-            col_agenda.agenda_name AS col_agenda,
-            tw.department_id AS department,
-            tw.course_id AS course,
-            tw.research_adviser_id AS adviser,
-            tw.comments,
-            tw.overall_status,
-            tw.submission_date,
-            tw.last_updated,
-            u.firstname AS student_firstname, 
-            u.lastname AS student_lastname,
-            dep.department_name AS department_name,
-            cou.course_name AS course_name,
-            advisor.firstname AS adviser_firstname,
-            advisor.lastname AS adviser_lastname
-        FROM TW_FORMS tw
-        LEFT JOIN ACCOUNTS u ON tw.user_id = u.user_id
-        LEFT JOIN DEPARTMENTS dep ON tw.department_id = dep.department_id
-        LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
-        LEFT JOIN institutional_research_agenda ira ON tw.ir_agenda_id = ira.ir_agenda_id
-        LEFT JOIN college_research_agenda col_agenda ON tw.col_agenda_id = col_agenda.agenda_id
-        LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'panelist'
-        WHERE tw.department_id = ? ";
-
-    if ($twform_type) {
-        $query .= " AND tw.form_type = ? ";
+        if (!empty($department_id)) {
+            $query .= " AND tw.department_id = ?";
+            $params[] = $department_id;
+            $types .= 'i';
+        }
+        
+        if ($twform_type) {
+            $query .= " AND tw.form_type = ?";
+            $params[] = $twform_type;
+            $types .= 's';
+        }
+        
+        if ($overall_status) {
+            $query .= " AND LOWER(tw.overall_status) = ?";
+            $params[] = strtolower($overall_status);
+            $types .= 's';
+        }
+    
+        $query .= " ORDER BY tw.last_updated DESC";
+    
+        $stmt = mysqli_prepare($conn, $query);
+        if (!$stmt) {
+            die("Database Query Failed: " . mysqli_error($conn));
+        }
+    
+        mysqli_stmt_bind_param($stmt, $types, ...$params);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+    
+        if (!$result) {
+            die("Database Query Failed: " . mysqli_error($conn));
+        }
+    
+        $twform_details = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $twform_details[] = $row;
+        }
+    
+        return $twform_details;
     }
-    if ($overall_status) {
-        $query .= " AND LOWER(tw.overall_status) = ? ";
-    }
-
-    $query .= " ORDER BY tw.last_updated DESC";
-
-    $stmt = mysqli_prepare($conn, $query);
-    if (!$stmt) {
-        die("Database Query Failed: " . mysqli_error($conn));
-    }
-
-    $params = [$dean_department_id];
-    if ($twform_type) {
-        $params[] = $twform_type;
-    }
-    if ($overall_status) {
-        $params[] = strtolower($overall_status);  
-    }
-
-    mysqli_stmt_bind_param($stmt, str_repeat('s', count($params)), ...$params);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-
-    if (!$result) {
-        die("Database Query Failed: " . mysqli_error($conn));
-    }
-    $twform_details = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $twform_details[] = $row;
-    }
-
-    return $twform_details;
-}
-
-
+    
+$tw_form_id = $_GET['tw_form_id'] ?? null;
 $twform_type = $_GET['twform_type'] ?? null;
 $overall_status = $_GET['overall_status'] ?? null;
-$twform_details = getTWForms($dean_department_id, $twform_type, $overall_status);
+$twform_details = getTWForms($twform_type, $overall_status);
 
 $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
 
@@ -286,7 +282,7 @@ $(document).ready(function () {
 
 <?php
 $content = ob_get_clean();
-include('dean-master.php');
+include('student-master.php');
 ?>
 
 <style>

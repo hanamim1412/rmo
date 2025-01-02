@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     header("Location: dean/tw-forms.php");
                     exit();
                 } elseif ($user['user_type'] == 'rmo_staff') {
-                    header("Location: rmo_staff/tw-forms.php");
+                    header("Location: rmo_staff/reports.php");
                     exit();
                 } elseif ($user['user_type'] == 'panelist') {
                     header("Location: panelist/tw-forms.php");
