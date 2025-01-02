@@ -161,11 +161,9 @@
                                         switch ($form['form_type']) {
                                             case 'twform_3':
                                                 $viewPage = 'tw-form3-details.php';
-                                                $pdfPage = 'generate_twform3_pdf.php';
                                                 break;
                                             case 'twform_5':
                                                 $viewPage = 'tw-form5-details.php';
-                                                $pdfPage = 'generate_twform5_pdf.php';
                                                 break;
                                             default:
                                                     $_SESSION['messages'][] = [
@@ -178,12 +176,7 @@
                                         ?>
                                         <div class="d-flex justify-content-between align-items-center mb-1" style="gap: 5px">
                                             <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view">View</a>
-                                            <?php if ($pdfPage): ?>
-                                                <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=I" class="btn btn-success btn-sm" target="_blank">Print</a>
-                                                <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=D" class="btn btn-primary btn-sm" target="_blank">Download</a>
-                                            <?php else: ?>
-                                                <span class="text-muted">PDF generation not available for this form type.</span>
-                                            <?php endif; ?>
+                                            
                                         </div>
                                     </td>
                                 </tr>

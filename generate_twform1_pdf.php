@@ -52,23 +52,29 @@ function getTWFormDetails($id) {
     return $result->fetch_assoc();
 }
 
-function getTWForm1Details($tw_form_id) {
-    global $conn;
-    $query = "
-        SELECT 
-            tw1.form1_id, 
-            tw1.year_level
-        FROM TWFORM_1 tw1
-        LEFT JOIN TW_FORMS tw ON tw1.tw_form_id = tw.tw_form_id
-        WHERE tw1.tw_form_id = ?
-        ORDER BY tw1.last_updated DESC
-    ";
+    function getTWForm1Details($tw_form_id) {
+        global $conn;
+        $query = "
+            SELECT 
+                tw1.form1_id, 
+                tw1.year_level
+            FROM TWFORM_1 tw1
+            LEFT JOIN TW_FORMS tw ON tw1.tw_form_id = tw.tw_form_id
+            WHERE tw1.tw_form_id = ?
+            ORDER BY tw1.last_updated DESC
+        ";
 
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("i", $tw_form_id);  
-    $stmt->execute();
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("i", $tw_form_id);  
+        $stmt->execute();
+        $result = $stmt->get_result(); 
+        $details = [];
+        
+        while ($row = $result->fetch_assoc()) {
+            $details[] = $row; 
+        }
+        return $details;
+    }
 
 function GetProponents($tw_form_id) {
     global $conn;
@@ -161,13 +167,18 @@ $html .= '<td><strong>Department:</strong> ' . htmlspecialchars($tw_form['depart
 $html .= '</tr>';
 $html .= '<tr>';
 $html .= '<td><strong>Course:</strong> ' . htmlspecialchars($tw_form['course_name']) . '</td>';
+$html .= '<td><strong>Year Level:</strong> ';  
+foreach ($twform1_details as $detail) {
+    $html .= htmlspecialchars($detail['year_level']);
+}
+$html .= '</td>';
+$html .= '</tr>';
+$html .= '<tr>';
 $html .= '<td><strong>Research Adviser:</strong> ' . htmlspecialchars($tw_form['adviser_firstname'] . ' ' . $tw_form['adviser_lastname']) . '</td>';
-$html .= '</tr>';
-$html .= '<tr>';
 $html .= '<td><strong>Overall Status:</strong> ' . htmlspecialchars($tw_form['overall_status']) . '</td>';
-$html .= '<td><strong>Comments:</strong> ' . htmlspecialchars($tw_form['comments']) . '</td>';
 $html .= '</tr>';
 $html .= '<tr>';
+$html .= '<td><strong>Comments:</strong> ' . htmlspecialchars($tw_form['comments']) . '</td>';
 $html .= '<td><strong>Assigned Panelists:</strong> ';
 if (count($panelists) > 0) {
     $panelistNames = [];
@@ -180,7 +191,9 @@ if (count($panelists) > 0) {
 }
 
 $html .= '</td>';
-$html .= '<td><strong>Proponents:</strong>';
+$html .= '</tr>';
+$html .= '<tr>';
+$html .= '<td><strong>Proponents: </strong>';
     
 $proponentNames = [];
 foreach ($proponents as $proponent) {

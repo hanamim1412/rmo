@@ -77,22 +77,28 @@ session_start();
         return $result->num_rows > 0 ? $result->fetch_assoc() : null;
 
     }
-    function getTWForm1Details($tw_form_id){
+    function getTWForm1Details($tw_form_id) {
         global $conn;
-            $query = "
-                SELECT 
-                    tw1.form1_id, 
-                    tw1.year_level
-                FROM TWFORM_1 tw1
-                LEFT JOIN TW_FORMS tw ON tw1.tw_form_id = tw.tw_form_id
-                WHERE tw1.tw_form_id = ?
-                ORDER BY tw1.last_updated DESC
-            ";
-
-            $stmt = $conn->prepare($query);
-            $stmt->bind_param("i", $tw_form_id);  
-            $stmt->execute();
-            return $stmt->get_result();
+        $query = "
+            SELECT 
+                tw1.form1_id, 
+                tw1.year_level
+            FROM TWFORM_1 tw1
+            LEFT JOIN TW_FORMS tw ON tw1.tw_form_id = tw.tw_form_id
+            WHERE tw1.tw_form_id = ?
+            ORDER BY tw1.last_updated DESC
+        ";
+    
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("i", $tw_form_id);  
+        $stmt->execute();
+        $result = $stmt->get_result(); 
+        $details = [];
+        
+        while ($row = $result->fetch_assoc()) {
+            $details[] = $row; 
+        }
+        return $details;
     }
     function GetProponents($tw_form_id) {
         global $conn;
@@ -237,6 +243,10 @@ session_start();
                 <div><strong>Course:</strong> <?= ucwords(htmlspecialchars($twform_details['course_name']))?></div>
                 <div><strong>Institutional Research Agenda:</strong> <?= htmlspecialchars($twform_details['ir_agenda_name']) ?></div> 
                 <div><strong>College Research Agenda:</strong> <?= htmlspecialchars($twform_details['col_agenda_name']) ?></div> 
+                <?php foreach ($twform1_details as $detail) {
+                        echo '<div><strong>Year Level:</strong> ' . htmlspecialchars($detail['year_level']) . '</div>';
+                    }
+                ?>
                 <div>
                     <strong>Proponents:</strong> 
                     <?php if (!empty($proponents)): ?>

@@ -1,5 +1,5 @@
 <?php
-// twform1-edit.php
+// twform2-edit.php
 session_start();
 if (!isset($_SESSION['user_id'])) {
     $_SESSION['messages'][] = ['tags' => 'warning', 'content' => "You need to log in"];
@@ -11,7 +11,7 @@ include("student-master.php");
 require '../config/connect.php';
 include '../messages.php';
 ob_start();
-$title = "TW Form 1: Approval of Thesis Title";
+$title = "TW Form 2: Approval of Proposal Hearing";
 
 $tw_form_id = isset($_GET['tw_form_id']) ? (int)$_GET['tw_form_id'] : 0;
 if ($tw_form_id <= 0) {
@@ -25,14 +25,17 @@ function getFormData($tw_form_id) {
     $query = "
         SELECT 
             twforms.*, 
-            form1.year_level, 
+            form2.thesis_title,
+            form2.defense_date,
+            form2.time,
+            form2.place,
             ir_agenda.ir_agenda_name, 
             cra.agenda_name AS col_agenda_name,
             cra.agenda_id,
             adviser.firstname AS adviser_firstname,
             adviser.lastname AS adviser_lastname
         FROM tw_forms AS twforms 
-        JOIN twform_1 AS form1 ON twforms.tw_form_id = form1.tw_form_id 
+        JOIN twform_2 AS form2 ON twforms.tw_form_id = form2.tw_form_id 
         LEFT JOIN institutional_research_agenda AS ir_agenda ON twforms.ir_agenda_id = ir_agenda.ir_agenda_id 
         LEFT JOIN college_research_agenda AS cra ON twforms.col_agenda_id = cra.agenda_id 
         LEFT JOIN accounts AS adviser ON twforms.research_adviser_id = adviser.user_id
@@ -44,6 +47,8 @@ function getFormData($tw_form_id) {
     $result = mysqli_stmt_get_result($stmt);
     return mysqli_fetch_assoc($result);
 }
+
+
 function getDepartments() {
     global $conn;
     $query = "SELECT department_id, department_name FROM departments";
@@ -126,38 +131,17 @@ function GetProponents($tw_form_id) {
             pro.proponent_id,
             pro.tw_form_id,
             pro.firstname,
-            pro.lastname
+            pro.lastname,
+            rp.receipt_id,
+            rp.receipt_num,
+            rp.receipt_img,
+            rp.date_paid
             FROM PROPONENTS pro
             LEFT JOIN TW_FORMS tw ON pro.tw_form_id = tw.tw_form_id
+            LEFT JOIN RECEIPTS rp ON pro.receipt_id = rp.receipt_id
             WHERE pro.tw_form_id = ?
         ";
 
-    $stmt = $conn->prepare($query);
-    if (!$stmt) {
-        die("Database query failed: " . $conn->error);
-    }
-
-    $stmt->bind_param("i", $tw_form_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    return $result->fetch_all(MYSQLI_ASSOC);
-}
-
-function GetTitles($tw_form_id) {
-    global $conn;
-    $query = "
-        SELECT
-            title.proposed_title_id,
-            title.tw_form_id,
-            title.title_name,
-            title.rationale,
-            title.is_selected
-        FROM PROPOSED_TITLE title
-        LEFT JOIN TW_FORMS tw ON title.tw_form_id = tw.tw_form_id
-        WHERE title.tw_form_id = ?
-        ORDER BY title.date_created DESC
-    ";
     $stmt = $conn->prepare($query);
     if (!$stmt) {
         die("Database query failed: " . $conn->error);
@@ -176,8 +160,7 @@ $courses = getCourses($form_data['department_id']);
 $advisers = getAdvisers($form_data['department_id'], $form_data['research_adviser_id']);
 $col_agendas = getCollegeAgenda($form_data['department_id'], $form_data['agenda_id']);
 $ir_agendas = getInstitutionalAgenda();
-$proponents = GetProponents($tw_form_id);  
-$titles = GetTitles($tw_form_id);
+$proponents = GetProponents($tw_form_id); 
 
 if (!$form_data) {
     $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "Form data not found"];
@@ -196,10 +179,10 @@ if (!$form_data) {
     </a>
 
     <div class="container">
-        <form id="editTwForm1" method="POST" action="submit-edit-tw1.php" class="form-container">
+        <form id="editTwForm2" method="POST" action="submit-edit-tw2.php" class="form-container">
             <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($tw_form_id) ?>">
 
-            <h2>Edit TW Form 1: Approval of Thesis Title</h2>
+            <h2>Edit TW Form 2: Approval of Proposal Hearing</h2>
 
             <div class="form-row">
                 <div class="form-group col-md-4">
@@ -263,11 +246,6 @@ if (!$form_data) {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                
-                    <div class="form-group col-md-4">
-                        <label>Year Level</label>
-                        <input type="text" name="year_level" class="form-control" value="<?= htmlspecialchars($form_data['year_level']) ?>" required>
-                    </div>
             </div>
 
             <div id="proponents-container">
@@ -282,31 +260,91 @@ if (!$form_data) {
                             <input type="text" name="student_lastnames[]" class="form-control mb-1 proponent"
                                 value="<?= htmlspecialchars($proponent['lastname']) ?>" required>
                         </div>
+                        <div class="form-group col-md-4">
+                         <input type="text" name="receipt_number[]" class="form-control" 
+                            value="<?= htmlspecialchars($proponent['receipt_num']) ?>"  required>   
+                        </div>
+                        <div class="form-group col-md-4">
+                            <input type="date" name="receipt_date[]" class="form-control" 
+                                value="<?= htmlspecialchars($proponent['date_paid']) ?>" required>   
+                        </div>
+                        <div class="form-group col-md-4">
+                            <?php if (!empty($proponent['receipt_img'])): ?>
+                            <?php 
+                                $file_extension = strtolower(pathinfo($proponent['receipt_img'], PATHINFO_EXTENSION)); 
+                                $is_image = in_array($file_extension, ['jpg', 'jpeg', 'png']);
+                                ?>
+                                <?php if ($is_image): ?>
+                                    <a href="javascript:void(0);" data-bs-toggle="modal" class="badge btn-primary text-decoration-none" data-bs-target="#receiptImageModal-<?= $proponent['proponent_id'] ?>">View Image</a>
+                                <a href="../uploads/receipts/<?= htmlspecialchars($proponent['receipt_img']) ?>" download class="badge btn-success text-decoration-none">Download File</a>
+                                <?php else: ?>
+                                    <a href="../uploads/receipts/<?= htmlspecialchars($proponent['receipt_img']) ?>" target="_blank" class="badge btn-primary text-decoration-none">View PDF</a>
+                                <?php endif; ?>
+                                <?php else: ?>
+                                    <input type="file" name="receipt_img[]" class="form-control" required>   
+                                <?php endif; ?>
+                        </div>
                     </div>
                 <?php endforeach; ?>
+                    <?php foreach ($proponents as $proponent): ?>
+                    <?php if (!empty($proponent['receipt_img'])): ?>
+                        <?php 
+                            $file_extension = strtolower(pathinfo($proponent['receipt_img'], PATHINFO_EXTENSION)); 
+                            $is_image = in_array($file_extension, ['jpg', 'jpeg', 'png']);
+                        ?>
+                        <?php if ($is_image): ?>
+                            <div class="modal fade" id="receiptImageModal-<?= $proponent['proponent_id'] ?>" tabindex="-1" aria-labelledby="receiptImageModalLabel-<?= $proponent['proponent_id'] ?>" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="receiptImageModalLabel-<?= $proponent['proponent_id'] ?>">Receipt Image</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <img src="../uploads/receipts/<?= htmlspecialchars($proponent['receipt_img']) ?>" alt="Receipt Image" class="img-fluid">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                <?php endforeach; ?>
             </div>
-
             <div id="titles-container">
-                <label>Proposed Titles and Rationale</label>
-                <?php foreach ($titles as $title): ?>
-                    <div class="form-group mt-2">
-                        <textarea name="proposed_titles[]" class="form-control mb-1" rows="2" required>
-                            <?= htmlspecialchars($title['title_name']) ?>
-                        </textarea>
-                        <textarea name="rationales[]" class="form-control mb-1" rows="6" required>
-                            <?= htmlspecialchars($title['rationale']) ?>
-                        </textarea>
-                    </div>
-                <?php endforeach; ?>
+                <h5>Thesis Title</h5>
+                <div class="form-group">
+                    <textarea name="thesis_title" class="form-control mb-1" rows="2" required>
+                        <?= htmlspecialchars($form_data['thesis_title']) ?>
+                    </textarea>
+                </div>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-sm">Update</button>
-        </form>
+            <h5>Proposal Hearing Details</h5>
+            <div class="form-row">
+                <div class="form-group col-md-4">
+                    <label>Defense Date</label>
+                    <input type="date" name="defense_date" class="form-control"
+                        value="<?= htmlspecialchars($form_data['defense_date']) ?>" required>
+                </div>
+                <div class="form-group col-md-4">
+                    <label>Defense Time</label>
+                    <input type="time" name="defense_time" class="form-control"
+                        value="<?= htmlspecialchars($form_data['time']) ?>" required>
+                </div>
+                <div class="form-group col-md-4">
+                    <label>Defense Place</label>
+                    <input type="text" name="defense_place" class="form-control" 
+                        value="<?= htmlspecialchars($form_data['place']) ?>" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-sm">Save</button>
+
     </div>
 </section>
 <script>
 $(document).ready(function () {
-    $('#editTwForm1').on('submit', function () {
+    $('#editTwForm2').on('submit', function () {
         $('#loadingOverlay').removeClass('d-none'); 
     });
 
@@ -372,31 +410,6 @@ document.addEventListener('DOMContentLoaded', function () {
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         background-color: white;
     }
-ul.suggestion-box {
-    position: absolute;
-    background: white;
-    border: 1px solid #ccc;
-    max-height: 200px;
-    overflow-y: auto;
-    width: 400px;
-    z-index: 1000;
-}
 
-li.suggestion-item {
-    padding: 5px;
-    cursor: pointer;
-    list-style: none;
-}
-
-li.suggestion-item:hover {
-    background-color: #f0f0f0;
-}
-
-.suggestion-box .no-suggestions {
-    color: #888;
-    font-style: italic;
-    padding: 5px;
-    text-align: center;
-}
 
 </style>
