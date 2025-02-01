@@ -36,6 +36,9 @@ switch ($form_type) {
     case 'twform_5':
         $redirectPage = "tw-form5-details.php?tw_form_id=" . $tw_form_id;
         break;
+    case 'twform_6':
+        $redirectPage = "tw-form6-details.php?tw_form_id=" . $tw_form_id;
+        break;
     default:
         $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Unknown form type. Redirecting to the main forms page.'];
         $redirectPage = "tw-forms.php";

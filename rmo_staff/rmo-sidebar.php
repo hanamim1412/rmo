@@ -33,13 +33,23 @@ mysqli_stmt_close($stmt);
     <br>
         <li class="section-title text-dark">Research</li>
         <li class="nav-item">
-            <a href="reports.php" class="nav-link">
-                <i class="fa-regular fa-folder-open"></i> <span>Reports</span>
+            <a href="tw-forms.php" class="nav-link">
+            <i class="fa-regular fa-file"></i> <span>TW forms</span>
             </a>
         </li>
         <li class="nav-item">
             <a href="analytics.php" class="nav-link">
                 <i class="fas fa-chart-line"></i> <span>Analytics</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="reports.php" class="nav-link">
+                <i class="fa-regular fa-folder-open"></i> <span>Reports</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="settings.php" class="nav-link">
+            <i class="fa-solid fa-gear"></i> <span>Settings</span>
             </a>
         </li>
         <li class="nav-item">

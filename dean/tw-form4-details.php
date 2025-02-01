@@ -197,8 +197,30 @@ session_start();
                 <div><strong>Course:</strong> <?= ucwords(htmlspecialchars($twform_details['course_name']))?></div>
                 <div><strong>Institutional Research Agenda:</strong> <?= htmlspecialchars($twform_details['ir_agenda_name']) ?></div> 
                 <div><strong>College Research Agenda:</strong> <?= htmlspecialchars($twform_details['col_agenda_name']) ?></div> 
-                <div><strong>Comments:</strong> <?= htmlspecialchars($twform_details['comments']) ?></div> 
-                
+                <div>
+                    <?php if (!empty($twform_details['comments'])): ?>
+                        <div>
+                            <strong>Comments:</strong> 
+                            <span id="remarks-display"><?= htmlspecialchars($twform_details['comments']); ?></span>
+                            <button class="btn btn-sm btn-secondary" id="edit-remarks-btn" onclick="toggleEdit()">Edit</button>
+                        </div>
+                        <form action="submit-remarks.php" method="POST" id="edit-remarks-form" style="display: none;">
+                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
+                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
+                            <textarea name="comments" rows="2" class="form-control form-control-sm w-50" required><?= htmlspecialchars($twform_details['comments']); ?></textarea>
+                            <button type="submit" class="btn btn-primary btn-sm mt-1">Save</button>
+                            <button type="button" class="btn btn-secondary btn-sm mt-1" onclick="toggleEdit()">Cancel</button>
+                        </form>
+                    <?php else: ?>
+                        <form action="submit-remarks.php" method="POST" style="display: inline;">
+                            <label for="remarks"><strong>Comments:</strong></label>
+                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
+                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']); ?>">
+                            <textarea name="comments" rows="2" class="form-control form-control-sm w-50" placeholder="Enter comments here..." required></textarea>
+                            <button type="submit" class="btn btn-primary btn-sm mt-1">Send</button>
+                        </form>
+                    <?php endif; ?>
+                </div>  
                 <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
                 <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
                 <div>

@@ -33,6 +33,11 @@ mysqli_stmt_close($stmt);
     <br>
         <li class="section-title text-dark">Research</li>
         <li class="nav-item">
+            <a href="https://my.smciligan.edu.ph/article" target="_blank" class="nav-link">
+            <i class="fa-solid fa-book-open"></i> <span>Article</span>
+            </a>
+        </li>
+        <li class="nav-item">
             <a href="tw-forms.php" class="nav-link">
                 <i class="fa-regular fa-file"></i> <span>TW forms</span>
             </a>

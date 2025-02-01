@@ -276,13 +276,14 @@ if (!$form_data) {
                                 ?>
                                 <?php if ($is_image): ?>
                                     <a href="javascript:void(0);" data-bs-toggle="modal" class="badge btn-primary text-decoration-none" data-bs-target="#receiptImageModal-<?= $proponent['proponent_id'] ?>">View Image</a>
-                                <a href="../uploads/receipts/<?= htmlspecialchars($proponent['receipt_img']) ?>" download class="badge btn-success text-decoration-none">Download File</a>
+                                    <a href="../uploads/receipts/<?= htmlspecialchars($proponent['receipt_img']) ?>" download class="badge btn-success text-decoration-none">Download File</a>
                                 <?php else: ?>
                                     <a href="../uploads/receipts/<?= htmlspecialchars($proponent['receipt_img']) ?>" target="_blank" class="badge btn-primary text-decoration-none">View PDF</a>
                                 <?php endif; ?>
                                 <?php else: ?>
-                                    <input type="file" name="receipt_img[]" class="form-control" required>   
+                                    <span>No receipt image Available</span>
                                 <?php endif; ?>
+                                <input type="file" name="receipt_img[]" class="form-control" required>   
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -339,7 +340,7 @@ if (!$form_data) {
             </div>
 
             <button type="submit" class="btn btn-primary btn-sm">Save</button>
-
+        </form>                    
     </div>
 </section>
 <script>

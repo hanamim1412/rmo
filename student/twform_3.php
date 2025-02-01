@@ -151,7 +151,7 @@ $ir_agendas = getInstitutionalAgenda();
                     <?php endforeach; ?>
             <?php endif; ?>
 
-            <h2>TW Form 2: Approval for Proposal Hearing</h2>
+            <h2>TW Form 3: Rating for Proposal Hearing</h2>
             <input type="hidden" name="user_id" value="<?= htmlspecialchars($_SESSION['user_id']) ?>">
 
             <div class="form-row">
@@ -219,7 +219,7 @@ $ir_agendas = getInstitutionalAgenda();
                 <h5>Attach Manuscript</h5>
                 <div class="form-group col-md-6">
                      <input type="file" name="manuscript" class="form-control" required>
-                     <span>file type: pdf</span>
+                     <span> Allowed file type: pdf</span>
                 </div>
             </div>
 

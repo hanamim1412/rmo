@@ -232,6 +232,10 @@ session_start();
                                                     <a href="../uploads/<?= htmlspecialchars($file['file_path']) ?>" target="_blank" class="btn btn-sm btn-primary">
                                                         View Manuscript
                                                     </a>
+                                                    <a href="../uploads/<?= htmlspecialchars($file['file_path']) ?>"
+                                                        download class="btn btn-sm btn-success">
+                                                        Download
+                                                    </a>
                                                 <?php endwhile; ?>
                                             <?php else: ?>
                                                 No manuscript available

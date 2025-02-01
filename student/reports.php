@@ -199,6 +199,9 @@ $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
                                     case 'twform_5':
                                         $pdfPage = 'generate_twform5_pdf.php';
                                         break;
+                                    case 'twform_6':
+                                        $pdfPage = 'generate_twform6_pdf.php';
+                                        break;
                                     default:
                                         $_SESSION['messages'][] = [
                                             'tags' => 'danger', 

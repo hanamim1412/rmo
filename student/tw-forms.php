@@ -101,11 +101,12 @@
                         <div class="modal-body">
                             <p>Please select the type of form you want to request:</p>
                             <div class="list-group">
-                                <a href="twform_1.php" class="list-group-item list-group-item-action">TW Form 1</a>
-                                <a href="twform_2.php" class="list-group-item list-group-item-action">TW Form 2</a>
-                                <a href="twform_3.php" class="list-group-item list-group-item-action">TW Form 3</a>
-                                <a href="twform_4.php" class="list-group-item list-group-item-action">TW Form 4</a>
-                                <a href="twform_5.php" class="list-group-item list-group-item-action">TW Form 5</a>
+                                <a href="twform_1.php" class="list-group-item list-group-item-action">TW Form 1: Approval of Thesis Title</a>
+                                <a href="twform_2.php" class="list-group-item list-group-item-action">TW Form 2: Approval for Proposal Hearing</a>
+                                <a href="twform_3.php" class="list-group-item list-group-item-action">TW Form 3: Rating for Proposal Hearing</a>
+                                <a href="twform_4.php" class="list-group-item list-group-item-action">TW Form 4: Approval for Oral Examination</a>
+                                <a href="twform_5.php" class="list-group-item list-group-item-action">TW Form 5: Rating for Final Defense</a>
+                                <a href="twform_6.php" class="list-group-item list-group-item-action">TW Form 6: Approval for Binding</a>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -193,6 +194,10 @@
                                             case 'twform_5':
                                                 $viewPage = 'tw-form5-details.php';
                                                 $editPage = 'twform5-edit.php';
+                                                break;
+                                            case 'twform_6':
+                                                $viewPage = 'tw-form6-details.php';
+                                                $editPage = 'twform6-edit.php';
                                                 break;
                                             default:
                                                 $_SESSION['messages'][] = [

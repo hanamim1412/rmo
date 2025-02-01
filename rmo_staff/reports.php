@@ -14,7 +14,7 @@
     $user_type = $_SESSION['user_type'];
 
     $is_rmo_staff = ($user_type === 'rmo_staff');
-    function getTWForms($twform_type = null, $overall_status = null) {
+    function getTWForms($twform_type = null, $overall_status = null,  $school_year = null) {
         global $conn;
         
         $query = "
@@ -32,7 +32,7 @@
                 tw.comments,
                 tw.overall_status,
                 tw.submission_date,
-                tw.last_updated,
+                YEAR(tw.last_updated) AS last_updated_year,
                 u.firstname AS student_firstname, 
                 u.lastname AS student_lastname,
                 dep.department_name AS department_name,
@@ -50,6 +50,11 @@
     
         if ($twform_type) {
             $query .= " AND tw.form_type = ? ";
+        }
+        if ($school_year) {
+            list($start_year, $end_year) = explode('-', $school_year);
+        
+            $query .= " AND (YEAR(tw.last_updated) BETWEEN ? AND ?) ";
         }
         if ($overall_status) {
             $query .= " AND LOWER(tw.overall_status) = ? ";
@@ -73,6 +78,14 @@
             $params[] = strtolower($overall_status);  
             $types .= 's'; 
         }
+        if ($school_year) {
+            list($start_year, $end_year) = explode('-', $school_year);
+            
+            $start_year = (int)$start_year;
+            $end_year = (int)$end_year;
+            
+            $query .= " AND (YEAR(tw.last_updated) BETWEEN ? AND ?) ";
+        }
         if (!empty($params)) {
             mysqli_stmt_bind_param($stmt, $types, ...$params);
         }
@@ -94,6 +107,7 @@
 
 $twform_type = $_GET['twform_type'] ?? null;
 $overall_status = $_GET['overall_status'] ?? null;
+$school_year = $_GET['school_year'] ?? null;
 
 $twform_details = getTWForms($twform_type, $overall_status);
 $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
@@ -133,6 +147,7 @@ $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
                 <option value="twform_3" <?= ($twform_type === 'twform_3') ? 'selected' : '' ?>>TW Form 3</option>
                 <option value="twform_4" <?= ($twform_type === 'twform_4') ? 'selected' : '' ?>>TW Form 4</option>
                 <option value="twform_5" <?= ($twform_type === 'twform_5') ? 'selected' : '' ?>>TW Form 5</option>
+                <option value="twform_6" <?= ($twform_type === 'twform_6') ? 'selected' : '' ?>>TW Form 6</option>
             </select>
         </div>
         <div class="col-md-3">
@@ -143,7 +158,15 @@ $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
                 <option value="rejected" <?= ($overall_status === 'rejected') ? 'selected' : '' ?>>Rejected</option>
             </select>
         </div>
-                
+        <div class="col-md-3">
+            <select id="school_year" name="school_year" class="form-select">
+                <option value="">Select School Year</option>
+                <option value="2023-2024" <?= ($school_year === '2023-2024') ? 'selected' : '' ?>>2023-2024</option>
+                <option value="2024-2025" <?= ($school_year === '2024-2025') ? 'selected' : '' ?>>2024-2025</option>
+                <option value="2025-2026" <?= ($school_year === '2025-2026') ? 'selected' : '' ?>>2025-2026</option>
+            </select>
+        </div>
+
         <div class="col-md-2">
             <button id="apply-filters" class="btn btn-success btn-sm w-100">Apply Filters</button>
         </div>
@@ -180,7 +203,7 @@ $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
                         <td><?= $form['student_firstname'] . ' ' . $form['student_lastname'] ?></td> 
                         <td><?= $form['adviser_firstname'] . ' ' . $form['adviser_lastname'] ?></td> 
                         <td><?= ucfirst($form['overall_status']) ?></td>
-                        <td><?= $form['submission_date'] ?></td>
+                        <td><?= $form['last_updated_year'] ?></td>
                         <td>
                             <?php 
                                 switch ($form['form_type']) {
@@ -199,6 +222,9 @@ $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
                                     case 'twform_5':
                                         $pdfPage = 'generate_twform5_pdf.php';
                                         break;
+                                    case 'twform_6':
+                                        $pdfPage = 'generate_twform6_pdf.php';
+                                        break;
                                     default:
                                         $_SESSION['messages'][] = [
                                             'tags' => 'danger', 
@@ -210,9 +236,9 @@ $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
                             ?>
                             <div class="d-flex justify-content-between align-items-center mb-1" style="gap: 5px">
                                 <?php if ($pdfPage): ?>
-                                    <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=I" class="btn btn-success btn-sm" target="_blank">Print</a>
+                                    <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=I" class="btn btn-success btn-sm" target="_blank">Generate</a>
                                     <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=D" class="btn btn-primary btn-sm" target="_blank">Download</a>
-                                <?php else: ?>
+                           <?php else: ?>
                                     <span class="text-muted">PDF generation not available for this form type.</span>
                                 <?php endif; ?>
                             </div>
@@ -252,8 +278,12 @@ $(document).ready(function () {
     $('#apply-filters').click(function () {
         var twform_type = $('#twform_type').val();
         var overall_status = $('#overall_status').val();
+        var school_year = $('#school_year').val();
 
-        var url = window.location.href.split('?')[0] + "?twform_type=" + twform_type + "&overall_status=" + overall_status;
+        var url = window.location.href.split('?')[0] + 
+            "?twform_type=" + twform_type + 
+            "&overall_status=" + overall_status + 
+            "&school_year=" + school_year;
         window.location.href = url;
     });
 
@@ -263,6 +293,15 @@ $(document).ready(function () {
 
     $('#overall_status').on('change', function () {
         table.column(8).search(this.value).draw();
+    });
+    $('#school_year').on('change', function () {
+        
+        var selectedYear = this.value;
+        if (selectedYear) {
+            table.column(9).search(selectedYear.split('-')[0]).draw(); 
+        } else {
+            table.column(9).search('').draw();
+        }
     });
 });
 

@@ -27,7 +27,7 @@ if (!$result || mysqli_num_rows($result) === 0) {
 $dean_data = mysqli_fetch_assoc($result);
 $dean_department_id = $dean_data['department_id'];
 
-function getTWForms($dean_department_id, $twform_type = null, $overall_status = null) {
+function getTWForms($dean_department_id, $twform_type = null, $overall_status = null,  $school_year = null) {
     global $conn;
     
     $query = "
@@ -44,6 +44,7 @@ function getTWForms($dean_department_id, $twform_type = null, $overall_status = 
             tw.overall_status,
             tw.submission_date,
             tw.last_updated,
+            YEAR(tw.last_updated) AS last_updated_year,
             u.firstname AS student_firstname, 
             u.lastname AS student_lastname,
             dep.department_name AS department_name,
@@ -65,7 +66,11 @@ function getTWForms($dean_department_id, $twform_type = null, $overall_status = 
     if ($overall_status) {
         $query .= " AND LOWER(tw.overall_status) = ? ";
     }
-
+    if ($school_year) {
+        list($start_year, $end_year) = explode('-', $school_year);
+    
+        $query .= " AND (YEAR(tw.last_updated) BETWEEN ? AND ?) ";
+    }
     $query .= " ORDER BY tw.last_updated DESC";
 
     $stmt = mysqli_prepare($conn, $query);
@@ -80,7 +85,14 @@ function getTWForms($dean_department_id, $twform_type = null, $overall_status = 
     if ($overall_status) {
         $params[] = strtolower($overall_status);  
     }
-
+    if ($school_year) {
+        list($start_year, $end_year) = explode('-', $school_year);
+        
+        $start_year = (int)$start_year;
+        $end_year = (int)$end_year;
+        
+        $query .= " AND (YEAR(tw.last_updated) BETWEEN ? AND ?) ";
+    }
     mysqli_stmt_bind_param($stmt, str_repeat('s', count($params)), ...$params);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
@@ -99,9 +111,10 @@ function getTWForms($dean_department_id, $twform_type = null, $overall_status = 
 
 $twform_type = $_GET['twform_type'] ?? null;
 $overall_status = $_GET['overall_status'] ?? null;
+$school_year = $_GET['school_year'] ?? null;
 $twform_details = getTWForms($dean_department_id, $twform_type, $overall_status);
 
-$status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
+$status = ($twform_type || $overall_status || $school_year) ? ucfirst($overall_status) : 'All';
 
 ?>
 
@@ -138,6 +151,7 @@ $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
                 <option value="twform_3">TW Form 3</option>
                 <option value="twform_4">TW Form 4</option>
                 <option value="twform_5">TW Form 5</option>
+                <option value="twform_6">TW Form 6</option>
             </select>
         </div>
         <div class="col-md-3">
@@ -149,10 +163,17 @@ $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
             </select>
         </div>
 
-
-    </div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <button id="apply-filters" class="btn btn-primary btn-sm">Apply Filters</button>
+        <div class="col-md-3">
+            <select id="school_year" name="school_year" class="form-select">
+                <option value="">Select School Year</option>
+                <option value="2023-2024" <?= ($school_year === '2023-2024') ? 'selected' : '' ?>>2023-2024</option>
+                <option value="2024-2025" <?= ($school_year === '2024-2025') ? 'selected' : '' ?>>2024-2025</option>
+                <option value="2025-2026" <?= ($school_year === '2025-2026') ? 'selected' : '' ?>>2025-2026</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button id="apply-filters" class="btn btn-success btn-sm w-100">Apply Filters</button>
+        </div>
     </div>
 
     <div class="table-responsive">
@@ -184,7 +205,7 @@ $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
                         <td><?= $form['student_firstname'] . ' ' . $form['student_lastname'] ?></td> 
                         <td><?= $form['adviser_firstname'] . ' ' . $form['adviser_lastname'] ?></td> 
                         <td><?= ucfirst($form['overall_status']) ?></td>
-                        <td><?= $form['submission_date'] ?></td>
+                        <td><?= $form['last_updated_year'] ?></td>
                         <td>
                             <?php 
                                 switch ($form['form_type']) {
@@ -202,6 +223,9 @@ $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
                                         break;
                                     case 'twform_5':
                                         $pdfPage = 'generate_twform5_pdf.php';
+                                        break;
+                                    case 'twform_6':
+                                        $pdfPage = 'generate_twform6_pdf.php';
                                         break;
                                     default:
                                         $_SESSION['messages'][] = [
@@ -256,8 +280,12 @@ $(document).ready(function () {
     $('#apply-filters').click(function () {
         var twform_type = $('#twform_type').val();
         var overall_status = $('#overall_status').val();
+        var school_year = $('#school_year').val();
 
-        var url = window.location.href.split('?')[0] + "?twform_type=" + twform_type + "&overall_status=" + overall_status;
+        var url = window.location.href.split('?')[0] + 
+            "?twform_type=" + twform_type + 
+            "&overall_status=" + overall_status + 
+            "&school_year=" + school_year;
         window.location.href = url;
     });
 
@@ -268,7 +296,17 @@ $(document).ready(function () {
     $('#overall_status').on('change', function () {
         table.column(8).search(this.value).draw();
     });
+    $('#school_year').on('change', function () {
+        
+        var selectedYear = this.value;
+        if (selectedYear) {
+            table.column(9).search(selectedYear.split('-')[0]).draw(); 
+        } else {
+            table.column(9).search('').draw();
+        }
+    });
 });
+
 
         
         document.addEventListener('DOMContentLoaded', () => {

@@ -175,6 +175,9 @@ $twforms_by_status = getTWForms($dean_department_id);
                                             case 'twform_5':
                                                 $viewPage = 'tw-form5-details.php';
                                                 break;
+                                            case 'twform_6':
+                                                $viewPage = 'tw-form6-details.php';
+                                                break;
                                             default:
                                                     $_SESSION['messages'][] = [
                                                         'tags' => 'danger', 

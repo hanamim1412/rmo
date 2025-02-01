@@ -49,6 +49,11 @@ mysqli_stmt_close($stmt);
             </a>
         </li>
         <li class="nav-item">
+            <a href="settings.php" class="nav-link">
+            <i class="fa-solid fa-gear"></i> <span>Settings</span>
+            </a>
+        </li>
+        <li class="nav-item">
             <a href="../logout.php" class="nav-link" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                 <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
             </a>

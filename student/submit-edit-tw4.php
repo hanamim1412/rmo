@@ -1,0 +1,120 @@
+<?php
+// submit-edit-tw4.php
+
+session_start();
+require '../config/connect.php';
+include '../messages.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $tw_form_id = (int) $_POST['tw_form_id'];
+    $department_id = (int) $_POST['department_id'];
+    $course_id = (int) $_POST['course_id'];
+    $adviser_id = (int) $_POST['adviser_id'];
+    $ir_agenda_id = (int) $_POST['ir_agenda_id'];
+    $col_agenda_id = (int) $_POST['col_agenda_id'];
+    $thesis_title = $_POST['thesis_title'];
+    $defense_date = $_POST['defense_date'];
+    $defense_time = $_POST['defense_time'];
+    $defense_place = $_POST['defense_place'];
+    $files = $_FILES['receipt_img'];
+
+    mysqli_begin_transaction($conn);
+    try {
+        
+        $update_twforms_query = "
+            UPDATE tw_forms
+            SET 
+                department_id = ?, 
+                course_id = ?, 
+                ir_agenda_id = ?, 
+                col_agenda_id = ?, 
+                research_adviser_id = ?, 
+                last_updated = NOW()
+            WHERE tw_form_id = ?";
+        $stmt = mysqli_prepare($conn, $update_twforms_query);
+        mysqli_stmt_bind_param($stmt, 'iiiiii', $department_id, $course_id, $ir_agenda_id, $col_agenda_id, $adviser_id, $tw_form_id);
+        mysqli_stmt_execute($stmt);
+
+        $update_twform4_query = "
+            UPDATE twform_4
+            SET 
+                thesis_title = ?, 
+                Defense_date = ?, 
+                time = ?, 
+                place = ?, 
+                last_updated = NOW()
+            WHERE tw_form_id = ?";
+        $stmt = mysqli_prepare($conn, $update_twform4_query);
+        mysqli_stmt_bind_param($stmt, 'ssssi', $thesis_title, $defense_date, $defense_time, $defense_place, $tw_form_id);
+        mysqli_stmt_execute($stmt);
+
+        if (isset($_POST['student_firstnames'])) {
+            mysqli_begin_transaction($conn);
+            try {
+                foreach ($_POST['student_firstnames'] as $index => $firstname) {
+                    $lastname = $_POST['student_lastnames'][$index];
+                    $receipt_number = $_POST['receipt_number'][$index];
+                    $receipt_date = $_POST['receipt_date'][$index];
+                    $receipt_id = $_POST['receipt_ids'][$index]; 
+        
+                    $receipt_path = null;
+                    if (isset($_FILES['receipt_img']['name'][$index]) && $_FILES['receipt_img']['error'][$index] === UPLOAD_ERR_OK) {
+                        $target_dir = "../uploads/receipts/";
+                        $unique_filename = substr(uniqid(), 0, 4) . "_" . basename($_FILES['receipt_img']['name'][$index]);
+                        $target_file = $target_dir . $unique_filename;
+
+                        if (move_uploaded_file($_FILES['receipt_img']['tmp_name'][$index], $target_file)) {
+                            $receipt_path = $unique_filename; 
+                        } else {
+                            throw new Exception("File upload failed for receipt image at index $index.");
+                        }
+                    }
+
+                    $receipt_query = "
+                        UPDATE receipts 
+                        SET 
+                            receipt_num = ?, 
+                            date_paid = ?, 
+                            receipt_img = CASE 
+                                WHEN ? IS NOT NULL THEN ? 
+                                ELSE receipt_img 
+                            END
+                        WHERE receipt_id = ?
+                    ";
+                    $receipt_stmt = mysqli_prepare($conn, $receipt_query);
+                    mysqli_stmt_bind_param($receipt_stmt, 'ssssi', $receipt_number, $receipt_date, $receipt_path, $receipt_path, $receipt_id);
+                    if (!mysqli_stmt_execute($receipt_stmt)) {
+                        throw new Exception("Failed to update receipt at index $index.");
+                    }
+
+                    $proponent_query = "
+                        UPDATE proponents 
+                        SET 
+                            firstname = ?, 
+                            lastname = ? 
+                        WHERE tw_form_id = ? AND receipt_id = ?
+                    ";
+                    $proponent_stmt = mysqli_prepare($conn, $proponent_query);
+                    mysqli_stmt_bind_param($proponent_stmt, 'ssii', $firstname, $lastname, $tw_form_id, $receipt_id);
+                    if (!mysqli_stmt_execute($proponent_stmt)) {
+                        throw new Exception("Failed to update proponent at index $index.");
+                    }
+                }
+                mysqli_commit($conn);
+            } catch (Exception $e) {
+                mysqli_rollback($conn);
+                die("Error: " . $e->getMessage());
+            }
+        }
+        
+        mysqli_commit($conn);
+        $_SESSION['messages'][] = ['tags' => 'success', 'content' => "Form updated successfully."];
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+        $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "An error occurred: " . $e->getMessage()];
+    }
+
+    header("Location: tw-forms.php");
+    exit();
+}
+?>
