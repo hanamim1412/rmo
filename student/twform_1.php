@@ -82,29 +82,10 @@ function getCollegeAgenda($department_id) {
     return $col_agendas;
 }
 
-function getAdvisers($department_id) {
-    global $conn;
-    $query = "SELECT user_id, firstname, lastname 
-              FROM accounts 
-              WHERE department_id = ? AND user_type = 'panelist'";
-    
-    $stmt = mysqli_prepare($conn, $query);
-    mysqli_stmt_bind_param($stmt, 'i', $department_id);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-
-    $advisers = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $advisers[] = $row;
-    }
-
-    return $advisers;
-}
 
 $departments = getDepartments();
 $courses = getCourses($department_id);
 $col_agendas = getCollegeAgenda($department_id);
-$advisers = getAdvisers($department_id);
 $ir_agendas = getInstitutionalAgenda();
 ?>
 
@@ -154,9 +135,8 @@ $ir_agendas = getInstitutionalAgenda();
                 </div>
                 <div class="form-group col-md-4">
                     <label>Adviser</label>
-                    <select name="adviser_id" class="form-control form-select" required>
-                        <option value="">Select Adviser</option>
-                    </select>
+                    <input type="text" class="form-control" id="adviser" name="adviser" placeholder="Type adviser name..." required>
+                    <div id="adviser-suggestions" class="autocomplete-suggestions"></div>
                 </div>
             </div>
 
@@ -182,11 +162,18 @@ $ir_agendas = getInstitutionalAgenda();
                         <option value="">Select Agenda</option>
                     </select>
                 </div>
-                <div class="form-group col-md-4">
-                    <label for="year_level">Year Level:</label>
-                    <input type="text" name="year_level" class="form-control" value="4th Year" required>
-                </div>
             </div>
+            <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label for="year_level">Year Level:</label>
+                        <input type="text" name="year_level" class="form-control" value="4th Year" required>
+                    </div>
+                    <div id="attachment" class="form-group col-md-4">
+                        <label for="attachment"> Attach scanned TW form 1 </label>
+                        <input type="file" name="attachment" id="document" required>
+                    </div>
+            </div>
+                                
             <div id="proponents-container">
                 <label>Proponents</label>
                 <div class="form-row mt-2">
@@ -199,7 +186,6 @@ $ir_agendas = getInstitutionalAgenda();
                 </div>
                 <button type="button" class="btn btn-success btn-sm add-proponent">Add</button>
             </div>
-
 
             <div id="titles-container">
                 <label>Proposed Titles and Rationale</label>
@@ -249,10 +235,43 @@ document.addEventListener('DOMContentLoaded', function () {
 document.addEventListener('DOMContentLoaded', () => {
     const departmentSelect = document.querySelector('select[name="department_id"]');
     const courseSelect = document.querySelector('select[name="course_id"]');
-    const adviserSelect = document.querySelector('select[name="adviser_id"]');
     const colAgendaSelect = document.querySelector('select[name="col_agenda_id"]');
     const proponentsContainer = document.getElementById('proponents-container');
     const titlesContainer = document.getElementById('titles-container');
+
+    const adviserInput = document.getElementById('adviser');
+    const adviserSuggestions = document.getElementById('adviser-suggestions');
+
+    adviserInput.addEventListener('input', function() {
+        const query = adviserInput.value.trim();
+
+        if (query.length > 2) { 
+            fetch(`autocomplete_adviser.php?q=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    adviserSuggestions.innerHTML = ''; 
+                    if (data.length > 0) {
+                        data.forEach(adviser => {
+                            const suggestionItem = document.createElement('div');
+                            suggestionItem.classList.add('autocomplete-item');
+                            suggestionItem.textContent = adviser.firstname + ' ' + adviser.lastname;
+                            suggestionItem.addEventListener('click', function() {
+                                adviserInput.value = adviser.firstname + ' ' + adviser.lastname; 
+                                adviserSuggestions.innerHTML = '';
+                            });
+                            adviserSuggestions.appendChild(suggestionItem);
+                        });
+                    } else {
+                        adviserSuggestions.innerHTML = '<div>No advisers found</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching advisers:', error);
+                });
+        } else {
+            adviserSuggestions.innerHTML = '';
+        }
+    });
 
     function addProponent() {
         const newProponent = document.createElement('div');
@@ -283,11 +302,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const departmentId = departmentSelect.value;
 
         courseSelect.innerHTML = '<option value="">Select Course</option>';
-        adviserSelect.innerHTML = '<option value="">Select Adviser</option>';
         colAgendaSelect.innerHTML = '<option value="">Select Agenda</option>';
 
         if (departmentId) {
-            fetch(`form.php?action=get_courses_and_advisers_agenda&department_id=${departmentId}`)
+            fetch(`form.php?action=get_courses_and_agenda&department_id=${departmentId}`)
                 .then(response => response.json())
                 .then(data => {
                     data.courses.forEach(course => {
@@ -297,13 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         courseSelect.appendChild(option);
                     });
 
-                    data.advisers.forEach(adviser => {
-                        const option = document.createElement('option');
-                        option.value = adviser.user_id;
-                        option.textContent = `${adviser.firstname} ${adviser.lastname}`;
-                        adviserSelect.appendChild(option);
-                    });
-
                     data.col_agendas.forEach(agenda => {
                         const option = document.createElement('option');
                         option.value = agenda.agenda_id;
@@ -311,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         colAgendaSelect.appendChild(option);
                     });
                 })
-                .catch(error => console.error('Error fetching courses and advisers:', error));
+                .catch(error => console.error('Error fetching courses:', error));
         }
     });
 
@@ -410,31 +421,20 @@ document.addEventListener('DOMContentLoaded', () => {
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         background-color: white;
     }
-ul.suggestion-box {
+.autocomplete-suggestions {
     position: absolute;
+    border: 1px solid #ddd;
     background: white;
-    border: 1px solid #ccc;
-    max-height: 200px;
+    max-height: 150px;
     overflow-y: auto;
-    width: 400px;
     z-index: 1000;
 }
-
-li.suggestion-item {
-    padding: 5px;
+.autocomplete-item {
+    padding: 8px;
     cursor: pointer;
-    list-style: none;
 }
-
-li.suggestion-item:hover {
-    background-color: #f0f0f0;
-}
-
-.suggestion-box .no-suggestions {
-    color: #888;
-    font-style: italic;
-    padding: 5px;
-    text-align: center;
+.autocomplete-item:hover {
+    background: #f0f0f0;
 }
 
 </style>

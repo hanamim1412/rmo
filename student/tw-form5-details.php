@@ -240,10 +240,10 @@ session_start();
                                                 No manuscript available
                                             <?php endif; ?>
                                         </td>
-                                        <td><?= htmlspecialchars($twform5['defense_date']) ?></td>
+                                        <td><?= htmlspecialchars($twform5['defense_date']?? ''); ?></td>
                                         <td>
                                             <?php 
-                                            $time_str = trim($twform5['time']);  
+                                            $time_str = trim($twform5['time'] ?? '');  
                                             $formatted_time = DateTime::createFromFormat('H:i:s', $time_str);
 
                                             if ($formatted_time) {
@@ -253,7 +253,7 @@ session_start();
                                             }
                                             ?>
                                         </td>
-                                        <td><?= htmlspecialchars($twform5['place']) ?></td>
+                                        <td><?= htmlspecialchars($twform5['place'] ?? ''); ?></td>
                                         <td><?php 
                                             $form_status = isset($twform5['status']) ? strtoupper(htmlspecialchars($twform5['status'])) : 'UNKNOWN';
                                             $badgeClass = '';

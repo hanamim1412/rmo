@@ -256,9 +256,6 @@ session_start();
                                         download class="btn btn-sm btn-warning">
                                         Download
                                     </a>
-                                    <a href="#" class="btn btn-sm btn-success">
-                                        Publish
-                                    </a>
                                 <?php endwhile; ?>
                             <?php else: ?>
                                 No manuscript available
@@ -267,6 +264,46 @@ session_start();
                 <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
                 <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
                 
+        </div>
+        <div class="details-section">
+            <form action="update_twform6_compliance.php" method="POST">
+                <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']) ?>">
+
+                <div class="mb-3">
+                    <label><strong>Supporting Documents:</strong></label><br>
+
+                    <?php
+                    $query = "SELECT * FROM twform_6_compliance WHERE tw_form_id = ?";
+                    $stmt = $conn->prepare($query);
+                    $stmt->bind_param("i", $twform_details['tw_form_id']);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+
+                    $document_types = [
+                        'Certificate of Conformity Status',
+                        'Certificate of Data Gathering',
+                        'Certificate of Similarity',
+                        'CV of Certification from Data Analyst',
+                        'Article Submitted to Repository'
+                    ];
+                    $existing_documents = [];
+                    while ($row = $result->fetch_assoc()) {
+                        $existing_documents[$row['document_name']] = $row['is_checked'];
+                    }
+
+                    foreach ($document_types as $doc) {
+                        $isChecked = isset($existing_documents[$doc]) && $existing_documents[$doc] == 1;
+                        echo '<div class="form-check">';
+                        echo '<input class="form-check-input" type="checkbox" name="documents[]" value="' . htmlspecialchars($doc) . '" ' . ($isChecked ? 'checked' : '') . '>';
+                        echo '<label class="form-check-label">' . htmlspecialchars($doc) . '</label>';
+                        echo '</div>';
+                    }
+                    ?>
+                </div>
+
+                <button type="submit" class="btn btn-success">Update Compliance</button>
+            </form>
+
         </div>
 
 </section>

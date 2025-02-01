@@ -43,6 +43,7 @@ function getTWForms($dean_department_id) {
             tw.overall_status,
             tw.submission_date,
             tw.last_updated,
+            tw.attachment,
             u.firstname AS student_firstname, 
             u.lastname AS student_lastname,
             dep.department_name AS department_name,
@@ -53,7 +54,7 @@ function getTWForms($dean_department_id) {
         LEFT JOIN ACCOUNTS u ON tw.user_id = u.user_id
         LEFT JOIN DEPARTMENTS dep ON tw.department_id = dep.department_id
         LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
-        LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'panelist'
+        LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'research_adviser'
         WHERE tw.department_id = ?  -- Filter by dean's department_id
         ORDER BY tw.last_updated DESC
     ";
@@ -141,6 +142,7 @@ $twforms_by_status = getTWForms($dean_department_id);
                                 <th>Course</th>
                                 <th>Submitted By</th>
                                 <th>Research Adviser</th>
+                                <th>attachment</th>
                                 <th>Status</th>
                                 <th>Date</th>
                                 <th>Action</th>
@@ -155,6 +157,25 @@ $twforms_by_status = getTWForms($dean_department_id);
                                     <td><?= $form['course_name'] ?></td> 
                                     <td><?= $form['student_firstname'] . ' ' . $form['student_lastname'] ?></td> 
                                     <td><?= $form['adviser_firstname'] . ' ' . $form['adviser_lastname'] ?></td> 
+                                    <td>
+                                        <?php if (!empty($twform_details['attachment'])): ?>
+                                            <?php 
+                                                $filePath = "../uploads/documents/" . htmlspecialchars($twform_details['attachment']);
+                                                $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                                            ?>
+                                            
+                                            <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                                                <a href="<?= $filePath ?>" target="_blank">
+                                                    <img src="<?= $filePath ?>" alt="Attachment" class="img-fluid" style="max-width: 150px; max-height: 150px;">
+                                                </a>
+                                            <?php else: ?>
+                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">View/Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                                            <?php endif; ?>
+
+                                        <?php else: ?>
+                                            <span>No attachment available.</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= ucfirst($form['overall_status']) ?></td>
                                     <td><?= $form['submission_date'] ?></td>
                                     <td>

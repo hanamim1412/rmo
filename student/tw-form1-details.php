@@ -150,18 +150,34 @@ session_start();
     
         return $result->fetch_all(MYSQLI_ASSOC);
     }
-
-    function GetAssignedPanelist($tw_form_id) {
+    function GetAssignedPanelistsAndChairman($tw_form_id) {
         global $conn;
         $query = "
             SELECT
                 panelist.assigned_panelist_id,
                 panelist.tw_form_id,
                 acc.firstname AS panelist_firstname,
-                acc.lastname AS panelist_lastname
+                acc.lastname AS panelist_lastname,
+                NULL AS chairman_firstname,
+                NULL AS chairman_lastname,
+                'panelist' AS role
             FROM assigned_panelists panelist
             LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id AND acc.user_type = 'panelist'
             WHERE panelist.tw_form_id = ?
+            
+            UNION ALL
+            
+            SELECT
+                chairman.chairman_id,
+                chairman.tw_form_id,
+                NULL AS panelist_firstname,
+                NULL AS panelist_lastname,
+                acc.firstname AS chairman_firstname,
+                acc.lastname AS chairman_lastname,
+                'chairman' AS role
+            FROM assigned_chairman chairman
+            LEFT JOIN ACCOUNTS acc ON chairman.user_id = acc.user_id AND acc.user_type = 'chairman'
+            WHERE chairman.tw_form_id = ?
         ";
         
         $stmt = $conn->prepare($query);
@@ -169,7 +185,7 @@ session_start();
             die("Database query failed: " . $conn->error);
         }
     
-        $stmt->bind_param("i", $tw_form_id);
+        $stmt->bind_param("ii", $tw_form_id, $tw_form_id);
         $stmt->execute();
         $result = $stmt->get_result();
     
@@ -177,7 +193,7 @@ session_start();
     }
 
     $tw_form_id = $_GET['tw_form_id']; 
-    $panelists = GetAssignedPanelist($tw_form_id);
+    $assigned_users = GetAssignedPanelistsAndChairman($tw_form_id);
     $twform_details = getTWFormDetails($tw_form_id); 
     $twform1_details = getTWForm1Details($tw_form_id);  
     $proponents = GetProponents($tw_form_id);  
@@ -246,15 +262,22 @@ session_start();
                                 <?php endif; ?>
                 </div>
                 <div>
-                    <strong>Panelists:</strong> 
-                    <?php if (!empty($panelists)): ?>
+                    <strong>Assigned Panelists and Chairman:</strong>
+                    <?php if (!empty($assigned_users)): ?>
                         <ul>
-                            <?php foreach ($panelists as $panelist): ?>
-                                <li><?= ucwords(htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname'])) ?></li>
+                            <?php foreach ($assigned_users as $user): ?>
+                                <li>
+                                    <?= ucwords(htmlspecialchars(
+                                        $user['role'] === 'panelist' 
+                                            ? $user['panelist_firstname'] . ' ' . $user['panelist_lastname'] 
+                                            : $user['chairman_firstname'] . ' ' . $user['chairman_lastname']
+                                    )) ?>
+                                    (<?= ucfirst($user['role']) ?>)
+                                </li>
                             <?php endforeach; ?>
                         </ul>
                     <?php else: ?>
-                        <p>No panelists assigned yet.</p>
+                        <p>No panelists or chairman assigned yet.</p>
                     <?php endif; ?>
                 </div>
                             

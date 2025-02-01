@@ -45,6 +45,7 @@ session_start();
                 tw.comments,
                 tw.overall_status,
                 tw.submission_date,
+                tw.attachment,
                 tw.last_updated,
                 u.firstname AS firstname, 
                 u.lastname AS lastname,
@@ -60,7 +61,7 @@ session_start();
             LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
             LEFT JOIN institutional_research_agenda ira ON tw.ir_agenda_id = ira.ir_agenda_id
             LEFT JOIN college_research_agenda col_agenda ON tw.col_agenda_id = col_agenda.agenda_id
-            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'panelist'
+            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'research_adviser'
             WHERE tw.tw_form_id = ?
             " . ($user_type === 'student' ? "AND u.user_type = 'student' AND tw.user_id = ?" : "") . "
             ORDER BY tw.last_updated DESC
@@ -278,6 +279,10 @@ session_start();
         </div>
 
             <div class="table-container mt-4">
+            <form action="tw5_update_defense_schedule.php" method="POST">
+                <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']) ?>">
+                <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
+                    
                         <table id="items-table" class="table table-bordered display">
                             <thead class="thead-background">
                                 <tr>
@@ -310,20 +315,18 @@ session_start();
                                                 No manuscript available
                                             <?php endif; ?>
                                         </td>
-                                        <td><?= htmlspecialchars($twform5['defense_date']) ?></td>
                                         <td>
-                                            <?php 
-                                            $time_str = trim($twform5['time']);  
-                                            $formatted_time = DateTime::createFromFormat('H:i:s', $time_str);
-
-                                            if ($formatted_time) {
-                                                echo htmlspecialchars($formatted_time->format('g:i A')); 
-                                            } else {
-                                                echo "Invalid time"; 
-                                            }
-                                            ?>
+                                            <input type="date" name="defense_date[]" value="<?= htmlspecialchars($twform3['defense_date'] ?? ''); ?>" class="form-control form-control-sm" required>
                                         </td>
-                                        <td><?= htmlspecialchars($twform5['place']) ?></td>
+
+                                        <td>
+                                            <input type="time" name="time[]" value="<?= htmlspecialchars($twform3['time'] ?? ''); ?>" class="form-control form-control-sm" required>
+                                        </td>
+
+                                        <td>
+                                            <textarea name="place[]" class="form-control form-control-sm" rows="1" required><?= htmlspecialchars($twform3['place'] ?? ''); ?></textarea>
+                                        </td>
+
                                         <td><?= htmlspecialchars($twform5['last_updated']) ?></td>
                                         <td><?php 
                                             $form_status = isset($twform5['status']) ? strtoupper(htmlspecialchars($twform5['status'])) : 'UNKNOWN';
@@ -361,6 +364,10 @@ session_start();
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
+                        <div class="text-center mt-3">
+                        <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                    </div>
+                </form>
             </div>
          
 </section>

@@ -180,6 +180,10 @@ $ir_agendas = getInstitutionalAgenda();
                         <option value="">Select Agenda</option>
                     </select>
                 </div>
+                <div id="attachment" class="form-group col-md-4">
+                        <label for="attachment"> Attach scanned TW form 4 </label>
+                        <input type="file" name="attachment" id="document" required>
+                    </div>
             </div>
             <div id="proponents-container">
                 <h5>Proponents and receipt details</h5>

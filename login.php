@@ -7,7 +7,6 @@ $error_message = '';
 $success_message = '';
 $warning_message = '';
 
-// Check for session messages
 if (isset($_SESSION['error_message'])) {
     $error_message = $_SESSION['error_message'];
     unset($_SESSION['error_message']); 
@@ -37,8 +36,8 @@ if (isset($_SESSION['user_id'])) {
     } elseif ($user_type == 'panelist') {
         header("Location: panelist/tw-forms.php");
         exit();
-    }elseif ($user_type == 'subject_advisor') {
-        header("Location: advisor/tw-forms.php");
+    }elseif ($user_type == 'chairman') {
+        header("Location: chairman/tw-forms.php");
         exit();
     } else{
         header("login.php");
@@ -80,8 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 } elseif ($user['user_type'] == 'panelist') {
                     header("Location: panelist/tw-forms.php");
                     exit();
-                }elseif ($user['user_type'] == 'subject_advisor') {
-                    header("Location: advisor/tw-forms.php");
+                }elseif ($user['user_type'] == 'chairman') {
+                    header("Location: chairman/tw-forms.php");
                     exit();
                 }
             } else {

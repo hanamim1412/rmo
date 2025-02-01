@@ -125,7 +125,7 @@ session_start();
                 acc.firstname AS panelist_firstname,
                 acc.lastname AS panelist_lastname
             FROM assigned_panelists panelist
-            LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id AND acc.user_type = 'panelist'
+            LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id AND acc.user_type = 'research_adviser'
             WHERE panelist.tw_form_id = ?
         ";
         

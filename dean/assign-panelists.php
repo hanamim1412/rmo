@@ -33,144 +33,104 @@ function getFormTypeByTwFormId($tw_form_id) {
 
     return null;
 }
-function getDepartmentIdFromTwForm($tw_form_id) {
-    global $conn;
-    
-    if ($tw_form_id == 0) {
-        echo "Invalid tw_form_id.";
-        return 0;
-    }
-    
-    $query = "SELECT department_id FROM tw_forms WHERE tw_form_id = ?";
-    
-    $stmt = mysqli_prepare($conn, $query);
-    mysqli_stmt_bind_param($stmt, 'i', $tw_form_id);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
+$form_type = getFormTypeByTwFormId($tw_form_id);
 
-    if ($row = mysqli_fetch_assoc($result)) {
-        return $row['department_id'];
-    } else {
-        echo "No department found for tw_form_id: $tw_form_id";
-        return 0;  
-    }
-}
-
-function getPanelists($department_id) {
-    global $conn;
-    
-    $query = "SELECT user_id, firstname, lastname 
-          FROM accounts 
-          WHERE department_id = ? AND user_type = 'panelist'
-          ORDER BY firstname, lastname";
-              
-    $stmt = mysqli_prepare($conn, $query);
-    mysqli_stmt_bind_param($stmt, 'i', $department_id);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-
-    $panelists = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $panelists[] = $row;
-    }
-
-    return $panelists;
-}
-
-
-if ($tw_form_id > 0) {
-    $department_id = getDepartmentIdFromTwForm($tw_form_id);
-    $panelists = ($department_id > 0) ? getPanelists($department_id) : [];
-    $form_type = getFormTypeByTwFormId($tw_form_id);
-} else {
-    $department_id = 0;
-    $panelists = [];
-}
 ?>
-<section id="assign-panelists-form">
-    <div class="header-container">
-        <h4 class="text-left">Assign Panelists Form</h4>
+<section id="settings" class="pt-4">
+    <div class="header-container pt-4">
+        <h4>
+            <a href="javascript:history.back()" class="btn btn-link" style="font-size: 1rem; text-decoration: none; color: black;">
+                <i class="fas fa-arrow-left" style="margin-right: 10px; font-size: 1.2rem;"></i>
+            </a>
+            Add Panelists
+        </h4>
     </div>
-    <a href="javascript:history.back()" class="btn btn-link" style="font-size: 1rem; text-decoration: none; color: black;">
-        <i class="fas fa-arrow-left" style="margin-right: 10px; font-size: 1.2rem;"></i>
-        Back
-    </a>
-
+    
     <div class="container">
-        <div class="register-box">
-            <form id="assign_panelists" method="POST" action="submit-panelists.php" class="form-container">
-                <?php if (!empty($messages)): ?>
-                    <?php foreach ($messages as $message): ?>
-                        <div class="alert alert-<?= htmlspecialchars($message['tags']) ?> alert-dismissible fade show" role="alert">
-                            <i class="fa-solid fa-circle-exclamation mr-1"></i><?= htmlspecialchars($message['content']) ?>
-                            <button type="button" class="close" data-bs-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-
-                <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($tw_form_id) ?>">
-                <input type="hidden" name="form_type" value="<?= htmlspecialchars($form_type) ?>">
-
-                <?php if (!empty($panelists)): ?>
-                    <?php for ($i = 1; $i <= 4; $i++): ?>
-                        <div class="form-group">
-                            <label for="panelist_id_<?= $i ?>">Panelist <?= $i ?></label>
-                            <select name="panelist_ids[]" id="panelist_id_<?= $i ?>" class="form-control form-select" required>
-                                <option value="">Select Panelist</option>
-                                <?php foreach ($panelists as $panelist): ?>
-                                    <option value="<?= htmlspecialchars($panelist['user_id']) ?>">
-                                        <?= htmlspecialchars($panelist['firstname'] . ' ' . $panelist['lastname']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    <?php endfor; ?>
-                    <div class="form-group">
-                        <label for="assignment_notes">Notes (Optional)</label>
-                        <textarea name="comments" id="comment" class="form-control" rows="3" placeholder="Enter Additional notes"></textarea>
-                    </div>               
-                    <button type="submit" class="btn btn-primary">Assign Panelists</button>
-                <?php else: ?>
-                    <p>No panelists are available for this department. Please contact the administration.</p>
-                <?php endif; ?>
-            </form>
-
-        </div>
+        <form action="submit-panelists.php" method="post" class="form-container p-2">
+            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($tw_form_id) ?>">
+            <input type="hidden" name="form_type" value="<?= htmlspecialchars($form_type) ?>">
+            <div class="text-center">
+                <h4>Assign Panelists and Chairman</h4>
+            </div>
+            
+            <?php for ($i = 1; $i <= 3; $i++): ?>
+                <div class="mb-3">
+                    <label for="panelist<?= $i ?>">Panelist <?= $i ?></label>
+                    <input type="text" class="form-control" id="panelist<?= $i ?>" name="panelist[]" placeholder="Type panelist name..." required>
+                    <input type="hidden" name="panelist_ids[]" required>
+                    <div id="panelist-suggestions<?= $i ?>" class="autocomplete-suggestions"></div>
+                </div>
+            <?php endfor; ?>
+            
+            <div class="mb-3">
+                <label for="chairman">Chairman</label>
+                <input type="text" class="form-control" id="chairman" name="chairman" placeholder="Type chairman name..." required>
+                <input type="hidden" name="chairman_id" required>
+                <div id="chairman-suggestions" class="autocomplete-suggestions"></div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">Submit</button>
+        </form>
     </div>
 </section>
 
 <script>
-    document.getElementById('assign_panelists').addEventListener('submit', function(event) {
-    const selectedOptions = Array.from(document.querySelectorAll('select[name="panelist_ids[]"]')).map(select => select.value);
-    const uniqueOptions = new Set(selectedOptions);
-
-    if (selectedOptions.length !== uniqueOptions.size) {
-        event.preventDefault();
-        alert('Each panelist must be unique. Please review your selections.');
+document.addEventListener("DOMContentLoaded", function() {
+    function setupAutocomplete(inputId, suggestionBoxId, userType) {
+        const input = document.getElementById(inputId);
+        const suggestionBox = document.getElementById(suggestionBoxId);
+        
+        input.addEventListener("input", function() {
+            const query = input.value;
+            if (query.length < 2) {
+                suggestionBox.innerHTML = "";
+                return;
+            }
+            fetch(`autocomplete-panelists.php?query=${query}&user_type=${userType}`)
+                .then(response => response.json())
+                .then(data => {
+                    suggestionBox.innerHTML = "";
+                    data.forEach(item => {
+                        const div = document.createElement("div");
+                        div.textContent = item.name;
+                        div.classList.add("autocomplete-item");
+                        div.addEventListener("click", function() {
+                            input.value = item.name;
+                            suggestionBox.innerHTML = "";
+                        });
+                        suggestionBox.appendChild(div);
+                    });
+                });
+        });
     }
+    
+    for (let i = 1; i <= 3; i++) {
+        setupAutocomplete(`panelist${i}`, `panelist-suggestions${i}`, "panelist");
+    }
+    setupAutocomplete("chairman", "chairman-suggestions", "chairman");
 });
-
 </script>
 
+<style>
+.autocomplete-suggestions {
+    position: absolute;
+    border: 1px solid #ddd;
+    background: white;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+.autocomplete-item {
+    padding: 8px;
+    cursor: pointer;
+}
+.autocomplete-item:hover {
+    background: #f0f0f0;
+}
+</style>
 
 <?php
     $content = ob_get_clean();
     include('dean-master.php');
 ?>
-<style>
-    .register-box {
-        display: flex;
-        background: white;
-        padding: 20px 10px;
-        border: 2px black solid;
-        border-radius: 10px;
-        width: 100%;
-        max-width: 600px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center; 
-        margin: auto;
-    }
-</style>

@@ -57,8 +57,6 @@ mysqli_close($conn);
                                     <option value="student">Student</option>
                                     <option value="dean">Dean</option>
                                     <option value="rmo_staff">RMO Personnel</option>
-                                    <option value="panelist">Panelist</option>
-                                    <option value="subject_advisor">Subject Advisor</option>
                                 </select>
                         </div>
                     </div>

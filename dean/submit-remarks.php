@@ -47,6 +47,7 @@ switch ($form_type) {
 
 $query = "UPDATE tw_forms SET comments = ?, last_updated = NOW() WHERE tw_form_id = ?";
 $stmt = $conn->prepare($query);
+
 if (!$stmt) {
     $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Failed to prepare the query: ' . $conn->error];
     header("Location: $redirectPage");
@@ -63,5 +64,5 @@ if ($stmt->execute()) {
 
 header("Location: $redirectPage");
 exit();
-?>
 
+?>

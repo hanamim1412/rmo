@@ -46,6 +46,7 @@ session_start();
                 tw.overall_status,
                 tw.submission_date,
                 tw.last_updated,
+                tw.attachment,
                 u.firstname AS firstname, 
                 u.lastname AS lastname,
                 dep.department_name AS department_name,
@@ -60,7 +61,7 @@ session_start();
             LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
             LEFT JOIN institutional_research_agenda ira ON tw.ir_agenda_id = ira.ir_agenda_id
             LEFT JOIN college_research_agenda col_agenda ON tw.col_agenda_id = col_agenda.agenda_id
-            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'panelist'
+            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'research_adviser'
             WHERE tw.tw_form_id = ?
             " . ($user_type === 'student' ? "AND u.user_type = 'student' AND tw.user_id = ?" : "") . "
             ORDER BY tw.last_updated DESC
@@ -133,7 +134,8 @@ session_start();
                 title.tw_form_id,
                 title.title_name,
                 title.rationale,
-                title.is_selected
+                title.is_selected,
+                title.remarks
             FROM PROPOSED_TITLE title
             LEFT JOIN TW_FORMS tw ON title.tw_form_id = tw.tw_form_id
             WHERE title.tw_form_id = ?
@@ -175,6 +177,31 @@ session_start();
     
         return $result->num_rows > 0 ? $result->fetch_all(MYSQLI_ASSOC) : [];
     }
+    function GetAssignedChairman($tw_form_id) {
+        global $conn;
+        $query = "
+            SELECT
+                cm.chairman_id,
+                cm.tw_form_id,
+                acc.firstname AS cm_firstname,
+                acc.lastname AS cm_lastname
+            FROM assigned_chairman cm
+            LEFT JOIN ACCOUNTS acc ON cm.user_id = acc.user_id
+            WHERE cm.tw_form_id = ?
+            LIMIT 1";  
+        
+        $stmt = $conn->prepare($query);
+        if (!$stmt) {
+            die("Database query failed: " . $conn->error);
+        }
+    
+        $stmt->bind_param("i", $tw_form_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    
+        return $result->fetch_assoc(); 
+    }
+    
 
     $tw_form_id = $_GET['tw_form_id']; 
     $twform_details = getTWFormDetails($tw_form_id); 
@@ -182,6 +209,7 @@ session_start();
     $proponents = GetProponents($tw_form_id);  
     $titles = GetTitles($tw_form_id);  
     $panelists = GetAssignedPanelist($tw_form_id);  
+    $chairman = GetAssignedChairman($tw_form_id);  
 ?>
 
 
@@ -247,6 +275,60 @@ session_start();
                         echo '<div><strong>Year Level:</strong> ' . htmlspecialchars($detail['year_level']) . '</div>';
                     }
                 ?>
+                
+                <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
+                <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
+                <div>
+                    <?php if (!empty($twform_details['comments'])): ?>
+                        <div id="remarks-display-comment">
+                            <strong>Comments:</strong> 
+                            <?= htmlspecialchars($twform_details['comments']); ?>
+                            <button class="btn btn-sm btn-secondary" onclick="toggleCommentEdit()">Edit</button>
+                        </div>
+
+                        <form action="submit-remarks.php" method="POST" id="edit-remarks-form-comment" style="display: none;">
+                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
+                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
+
+                            <textarea name="comments" rows="2" class="form-control form-control-sm w-50" required><?= htmlspecialchars($twform_details['comments']); ?></textarea>
+                            <button type="submit" class="btn btn-primary btn-sm mt-1">Save</button>
+                            <button type="button" class="btn btn-secondary btn-sm mt-1" onclick="toggleCommentEdit()">Cancel</button>
+                        </form>
+                    <?php else: ?>
+                        <form action="submit-remarks.php" method="POST">
+                            <label for="remarks"><strong>Comments:</strong></label>
+                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
+                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']); ?>">
+                            
+                            <textarea name="comments" rows="2" class="form-control form-control-sm w-50" placeholder="Enter comments here..." required></textarea>
+                            <button type="submit" class="btn btn-primary btn-sm mt-1">Send</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+                <div>
+                    <strong>Attachment</strong><br>
+
+                    <?php if (!empty($twform_details['attachment'])): ?>
+                        <?php 
+                            $filePath = "../uploads/documents/" . htmlspecialchars($twform_details['attachment']);
+                            $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                        ?>
+                        
+                        <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                            <a href="<?= $filePath ?>" target="_blank">
+                                <img src="<?= $filePath ?>" alt="Attachment" class="img-fluid" style="max-width: 500px; max-height: 500px;">
+                            </a>
+                        <?php else: ?>
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php endif; ?>
+
+                    <?php else: ?>
+                        <span>No attachment available.</span>
+                    <?php endif; ?>
+                </div>
+
+
+ 
                 <div>
                     <strong>Proponents:</strong> 
                     <?php if (!empty($proponents)): ?>
@@ -260,47 +342,23 @@ session_start();
                     <?php endif; ?>
                 </div>
                 <div>
-                    <strong>Assigned Panelists:</strong> 
-                        <?php if (!empty($panelists)): ?>
-                            <ul>
-                                <?php foreach ($panelists as $panelist): ?>
-                                    <li><?= ucwords(htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname'])) ?></li>
-                                <?php endforeach; ?>
+                    <?php if (!empty($panelists)): ?>
+                        <ul>
+                                <strong>Assigned Panel examiners:</strong> 
+                                    <?php foreach ($panelists as $panelist): ?>
+                                        <li><?= ucwords(htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname'])) ?></li>
+                                    <?php endforeach; ?>
+                                <strong>Assigned Chairman:</strong> 
+                                    <li><?= ucwords(htmlspecialchars($chairman['cm_firstname'] . ' ' . $chairman['cm_lastname'])) ?></li>
                             </ul>
+                                
                         <?php else: ?>
-                            <p>No panelists found for this form.</p>
+                            <p>No panelists and chairman found for this form.</p>
                             <a href="assign-panelists.php?tw_form_id=<?= $twform_details['tw_form_id'] ?>" 
-                                class="btn btn-primary btn-sm">Assign Panelists
+                                class="btn btn-primary btn-sm">Assign Panel examiners
                             </a>
                         <?php endif; ?>
                 </div>
-                <div>
-                    <?php if (!empty($twform_details['comments'])): ?>
-                        <div>
-                            <strong>Comments:</strong> 
-                            <span id="remarks-display"><?= htmlspecialchars($twform_details['comments']); ?></span>
-                            <button class="btn btn-sm btn-secondary" id="edit-remarks-btn" onclick="toggleEdit()">Edit</button>
-                        </div>
-                        <form action="submit-remarks.php" method="POST" id="edit-remarks-form" style="display: none;">
-                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
-                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
-                            <textarea name="comments" rows="2" class="form-control form-control-sm w-50" required><?= htmlspecialchars($twform_details['comments']); ?></textarea>
-                            <button type="submit" class="btn btn-primary btn-sm mt-1">Save</button>
-                            <button type="button" class="btn btn-secondary btn-sm mt-1" onclick="toggleEdit()">Cancel</button>
-                        </form>
-                    <?php else: ?>
-                        <form action="submit-remarks.php" method="POST" style="display: inline;">
-                            <label for="remarks"><strong>Comments:</strong></label>
-                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
-                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']); ?>">
-                            <textarea name="comments" rows="2" class="form-control form-control-sm w-50" placeholder="Enter comments here..." required></textarea>
-                            <button type="submit" class="btn btn-primary btn-sm mt-1">Send</button>
-                        </form>
-                    <?php endif; ?>
-                </div>   
-                
-                <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
-                <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
         </div>
 
             <div class="table-container mt-4">
@@ -312,6 +370,7 @@ session_start();
                                     <th scope="col">Title</th>
                                     <th scope="col">Rationale</th>
                                     <th scope="col">Selection</th>
+                                    <th scope="col">remarks</th>
                                     <th scope="col">Actions</th>
                                 </tr>
                             </thead>
@@ -347,6 +406,22 @@ session_start();
                                                 </form>
                                             <?php endif; ?>
                                         </td>
+                                        <td>
+                                            <div id="remarks-display-<?= $title['proposed_title_id'] ?>">
+                                                <?= !empty($title['remarks']) ? htmlspecialchars($title['remarks']) : 'No remarks yet' ?>
+                                                <button class="btn btn-sm btn-secondary" onclick="toggleTitleEdit(<?= $title['proposed_title_id'] ?>)">Edit</button>
+                                            </div>
+
+                                            <form action="submit-title-remarks.php" method="POST" id="edit-remarks-form-<?= $title['proposed_title_id'] ?>" style="display: none;">
+                                                <input type="hidden" name="proposed_title_id" value="<?= htmlspecialchars($title['proposed_title_id']) ?>">
+                                                <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
+                                                <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']); ?>">
+
+                                                <textarea name="remarks" rows="2" class="form-control form-control-sm" required><?= htmlspecialchars($title['remarks']); ?></textarea>
+                                                <button type="submit" class="btn btn-primary btn-sm mt-1">Save</button>
+                                                <button type="button" class="btn btn-secondary btn-sm mt-1" onclick="toggleTitleEdit(<?= $title['proposed_title_id'] ?>)">Cancel</button>
+                                            </form>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -374,21 +449,31 @@ $(document).ready(function () {
     });
 });
 
-    function toggleEdit() {
-        const display = document.getElementById('remarks-display');
-        const editForm = document.getElementById('edit-remarks-form');
-        const editButton = document.getElementById('edit-remarks-btn');
+function toggleTitleEdit(proposedTitleId) {
+    const displayDiv = document.getElementById(`remarks-display-${proposedTitleId}`);
+    const form = document.getElementById(`edit-remarks-form-${proposedTitleId}`);
 
-        if (editForm.style.display === 'none') {
-            display.style.display = 'none';
-            editButton.style.display = 'none';
-            editForm.style.display = 'block';
-        } else {
-            display.style.display = 'block';
-            editButton.style.display = 'inline-block';
-            editForm.style.display = 'none';
-        }
+    if (displayDiv.style.display === "none") {
+        displayDiv.style.display = "block";
+        form.style.display = "none";
+    } else {
+        displayDiv.style.display = "none";
+        form.style.display = "block";
     }
+}
+
+function toggleCommentEdit() {
+    const displayDiv = document.getElementById("remarks-display-comment");
+    const form = document.getElementById("edit-remarks-form-comment");
+
+    if (displayDiv.style.display === "none") {
+        displayDiv.style.display = "block";
+        form.style.display = "none";
+    } else {
+        displayDiv.style.display = "none";
+        form.style.display = "block";
+    }
+}
 
     document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {

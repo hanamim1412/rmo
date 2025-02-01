@@ -201,12 +201,17 @@ $ir_agendas = getInstitutionalAgenda();
                         <option value="">Select Agenda</option>
                     </select>
                 </div>
-                
+            </div>
+            <div class="form-row">
                 <div class="form-group col-md-4">
                     <label for="student_name">Student Name</label>
                     <input type="text" class="form-control" name="student" id="student_name" 
                     value="<?= ucwords(htmlspecialchars($currentUser['firstname'])).' '. 
                     ucwords(htmlspecialchars($currentUser['lastname'])); ?>" readonly>
+                </div>
+                <div id="attachment" class="form-group col-md-4">
+                    <label for="attachment"> Attach scanned TW form 5 </label>
+                    <input type="file" name="attachment" id="document" required>
                 </div>
             </div>
                 
@@ -219,22 +224,6 @@ $ir_agendas = getInstitutionalAgenda();
                 <div class="form-group col-md-6">
                      <input type="file" name="manuscript" class="form-control" required>
                      <span>file type: pdf</span>
-                </div>
-            </div>
-
-            <h5>Final Defense Details</h5>
-            <div class="form-row">
-                <div class="form-group col-md-4">
-                    <label>Defense Date</label>
-                    <input type="date" name="defense_date" class="form-control" required>
-                </div>
-                <div class="form-group col-md-4">
-                    <label>Defense Time</label>
-                    <input type="time" name="defense_time" class="form-control" required>
-                </div>
-                <div class="form-group col-md-4">
-                    <label>Defense Place</label>
-                    <input type="text" name="defense_place" class="form-control" placeholder="Enter place" required>
                 </div>
             </div>
 

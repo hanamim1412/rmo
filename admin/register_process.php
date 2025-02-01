@@ -39,8 +39,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $username = sprintf("C%s-%04d", $last_two_digits, $incremental_value);
         $insert_query = "
         INSERT INTO accounts 
-                (firstname, lastname, contact, username, password, smc_email, department_id, user_type, date_created) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                (firstname, lastname, contact, username, password, smc_email, department_id, user_type, is_active, date_created) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())
             ";
             $stmt = $conn->prepare($insert_query);
             if (!$stmt) {
@@ -50,7 +50,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
 
             $stmt->bind_param(
-                'ssssssss',
+                'ssssssis',
                 $firstname,
                 $lastname,
                 $contact,
