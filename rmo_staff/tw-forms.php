@@ -29,6 +29,7 @@
                 tw.research_adviser_id AS adviser,
                 tw.comments,
                 tw.overall_status,
+                tw.attachment,
                 tw.submission_date,
                 tw.last_updated,
                 u.firstname AS student_firstname, 
@@ -41,8 +42,7 @@
             LEFT JOIN ACCOUNTS u ON tw.user_id = u.user_id
             LEFT JOIN DEPARTMENTS dep ON tw.department_id = dep.department_id
             LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
-            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'panelist'
-            WHERE tw.form_type = 'twform_6' 
+            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'research_adviser'
         ";
         $params = [];
         $types = '';
@@ -133,6 +133,7 @@ $status = ($overall_status) ? ucfirst($overall_status) : 'All';
                                 <th>Course</th>
                                 <th>Submitted By</th>
                                 <th>Research Adviser</th>
+                                <th>Attachment</th>
                                 <th>Status</th>
                                 <th>Date</th>
                                 <th>Action</th>
@@ -147,11 +148,56 @@ $status = ($overall_status) ? ucfirst($overall_status) : 'All';
                                     <td><?= $form['course_name'] ?></td> 
                                     <td><?= $form['student_firstname'] . ' ' . $form['student_lastname'] ?></td> 
                                     <td><?= $form['adviser_firstname'] . ' ' . $form['adviser_lastname'] ?></td> 
+                                    <td>
+                                        <?php if (!empty($form['attachment'])): ?>
+                                            <?php 
+                                                $filePath = "../uploads/documents/" . htmlspecialchars($form['attachment']);
+                                                $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                                            ?>
+                                            
+                                            <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-success">View Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                                            <?php else: ?>
+                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-success">View Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                                            <?php endif; ?>
+
+                                        <?php else: ?>
+                                            <span class="badge badge-danger badge-sm">No attachment available.</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= ucfirst($form['overall_status']) ?></td>
                                     <td><?= $form['submission_date'] ?></td>
                                     <td>
-                                        <a href="tw-form6-details.php?tw_form_id=<?= $form['tw_form_id'] ?>" 
-                                            class="btn btn-warning btn-sm view-btn">View</a>
+                                        <?php 
+                                        switch ($form['form_type']) {
+                                            case 'twform_1':
+                                                $viewPage = 'tw-form1-details.php';
+                                                break;
+                                            case 'twform_2':
+                                                $viewPage = 'tw-form2-details.php';
+                                                break;
+                                            case 'twform_3':
+                                                $viewPage = 'tw-form3-details.php';
+                                                break;
+                                            case 'twform_4':
+                                                $viewPage = 'tw-form4-details.php';
+                                                break;
+                                            case 'twform_5':
+                                                $viewPage = 'tw-form5-details.php';
+                                                break;
+                                            case 'twform_6':
+                                                $viewPage = 'tw-form6-details.php';
+                                                break;
+                                            default:
+                                                    $_SESSION['messages'][] = [
+                                                        'tags' => 'danger', 
+                                                        'content' => "Unknown form type encountered for Form ID: {$form['tw_form_id']}."
+                                                    ];
+                                                $viewPage = 'tw-forms.php'; 
+                                                break;
+                                        }
+                                        ?>
+                                        <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view">View</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -207,7 +253,7 @@ $(document).ready(function () {
 
     $('#overall_status').on('change', function () {
         const value = $(this).val().toLowerCase();
-        table.column(6).search(this.value).draw();
+        table.column(7).search(this.value).draw();
     });
 });
         

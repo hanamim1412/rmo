@@ -46,6 +46,7 @@ session_start();
                 tw.overall_status,
                 tw.submission_date,
                 tw.last_updated,
+                tw.attachment,
                 u.firstname AS firstname, 
                 u.lastname AS lastname,
                 dep.department_name AS department_name,
@@ -197,32 +198,29 @@ session_start();
                 <div><strong>Course:</strong> <?= ucwords(htmlspecialchars($twform_details['course_name']))?></div>
                 <div><strong>Institutional Research Agenda:</strong> <?= htmlspecialchars($twform_details['ir_agenda_name']) ?></div> 
                 <div><strong>College Research Agenda:</strong> <?= htmlspecialchars($twform_details['col_agenda_name']) ?></div> 
-                <div>
-                    <?php if (!empty($twform_details['comments'])): ?>
-                        <div>
-                            <strong>Comments:</strong> 
-                            <span id="remarks-display"><?= htmlspecialchars($twform_details['comments']); ?></span>
-                            <button class="btn btn-sm btn-secondary" id="edit-remarks-btn" onclick="toggleEdit()">Edit</button>
-                        </div>
-                        <form action="submit-remarks.php" method="POST" id="edit-remarks-form" style="display: none;">
-                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
-                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
-                            <textarea name="comments" rows="2" class="form-control form-control-sm w-50" required><?= htmlspecialchars($twform_details['comments']); ?></textarea>
-                            <button type="submit" class="btn btn-primary btn-sm mt-1">Save</button>
-                            <button type="button" class="btn btn-secondary btn-sm mt-1" onclick="toggleEdit()">Cancel</button>
-                        </form>
-                    <?php else: ?>
-                        <form action="submit-remarks.php" method="POST" style="display: inline;">
-                            <label for="remarks"><strong>Comments:</strong></label>
-                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
-                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']); ?>">
-                            <textarea name="comments" rows="2" class="form-control form-control-sm w-50" placeholder="Enter comments here..." required></textarea>
-                            <button type="submit" class="btn btn-primary btn-sm mt-1">Send</button>
-                        </form>
-                    <?php endif; ?>
-                </div>  
+                
                 <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
                 <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
+                <div>
+                    <strong>Attachment</strong><br>
+
+                    <?php if (!empty($twform_details['attachment'])): ?>
+                        <?php 
+                            $filePath = "../uploads/documents/" . htmlspecialchars($twform_details['attachment']);
+                            $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                        ?>
+                        
+                        <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                            
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php else: ?>
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php endif; ?>
+
+                    <?php else: ?>
+                        <span>No attachment available.</span>
+                    <?php endif; ?>
+                </div>
                 <div>
                     <strong>Proponents and Receipt Details:</strong> 
                     <?php if (!empty($proponents)): ?>
@@ -281,9 +279,38 @@ session_start();
                     <?php endif; ?>
                 <?php endif; ?>
             <?php endforeach; ?>
+
+                <div>
+                    <?php if (!empty($twform_details['comments'])): ?>
+                        <div>
+                            <strong>Comments:</strong> 
+                            <span id="remarks-display"><?= htmlspecialchars($twform_details['comments']); ?></span>
+                            <button class="btn btn-sm btn-secondary" id="edit-remarks-btn" onclick="toggleEdit()">Edit</button>
+                        </div>
+                        <form action="submit-remarks.php" method="POST" id="edit-remarks-form" style="display: none;">
+                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
+                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
+                            <textarea name="comments" rows="2" class="form-control form-control-sm w-50" required><?= htmlspecialchars($twform_details['comments']); ?></textarea>
+                            <button type="submit" class="btn btn-primary btn-sm mt-1">Save</button>
+                            <button type="button" class="btn btn-secondary btn-sm mt-1" onclick="toggleEdit()">Cancel</button>
+                        </form>
+                    <?php else: ?>
+                        <form action="submit-remarks.php" method="POST" style="display: inline;">
+                            <label for="remarks"><strong>Comments:</strong></label>
+                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
+                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']); ?>">
+                            <textarea name="comments" rows="2" class="form-control form-control-sm w-50" placeholder="Enter comments here..." required></textarea>
+                            <button type="submit" class="btn btn-primary btn-sm mt-1">Send</button>
+                        </form>
+                    <?php endif; ?>
+                </div>  
         </div>
 
             <div class="table-container mt-4">
+                <form action="tw4_update_defense_schedule.php" method="POST">
+                    <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']) ?>">
+                    <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
+                      
                         <table id="items-table" class="table table-bordered display">
                             <thead class="thead-background">
                                 <tr>
@@ -292,33 +319,34 @@ session_start();
                                     <th scope="col">Date of Defense</th>
                                     <th scope="col">Time</th>
                                     <th scope="col">Venue</th>
-                                    <th scope="col">Date Submitted</th>
+                                    <th scope="col">Last Update</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($twform4_details as $index => $twform4): ?>
+                                 <?php $i = 1; foreach ($twform4_details as $twform4): ?>
                                     <tr>
-                                        <td><?= $index + 1 ?></td>
+                                        <td><?= $i++; ?></td>
                                         <td><?= htmlspecialchars($twform4['thesis_title']) ?></td>
-                                        <td><?= htmlspecialchars($twform4['defense_date']) ?></td>
                                         <td>
-                                            <?php 
-                                            $time_str = trim($twform4['time']);  
-                                            $formatted_time = DateTime::createFromFormat('H:i:s', $time_str);
-
-                                            if ($formatted_time) {
-                                                echo htmlspecialchars($formatted_time->format('g:i A')); 
-                                            } else {
-                                                echo "Invalid time"; 
-                                            }
-                                            ?>
+                                            <input type="date" name="defense_date" value="<?= htmlspecialchars($twform4['defense_date'] ?? ''); ?>" class="form-control form-control-sm" required>
                                         </td>
-                                        <td><?= htmlspecialchars($twform4['place']) ?></td>
-                                        <td><?= htmlspecialchars($twform4['date_submitted']) ?></td>
+
+                                        <td>
+                                            <input type="time" name="time" value="<?= htmlspecialchars($twform4['time'] ?? ''); ?>" class="form-control form-control-sm" required>
+                                        </td>
+
+                                        <td>
+                                            <textarea name="place" class="form-control form-control-sm w-auto" rows="2" required><?= htmlspecialchars($twform4['place'] ?? 'No assigned place yet'); ?></textarea>
+                                        </td>
+                                        <td><?= htmlspecialchars($twform4['last_updated']) ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
+                    <div class="text-right mt-3">
+                        <button type="submit" name="update_schedule" class="btn btn-success btn-sm">Update Schedule</button>
+                    </div>
+                </form>
             </div>
          
 </section>

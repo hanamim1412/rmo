@@ -38,8 +38,8 @@
                     <input type="text" id="ir_agenda_name" name="ir_agenda_name" class="form-control" required>
                 </div>
                 <div class="mb-3">
-                    <label for="description" class="form-label">Sub Areas</label>
-                    <textarea id="description" name="description" class="form-control" rows="6" required></textarea>
+                    <label for="description" class="form-label">Description</label>
+                    <textarea id="description" name="description" class="form-control" rows="8" required></textarea>
                 </div>
                 <button type="submit" class="btn btn-primary">Add Agenda</button>
             </form>

@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require '../config/connect.php';
+include '../messages.php';
 
 if (!isset($_POST['tw_form_id'], $_POST['status'], $_POST['form_type'])) {
     $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Invalid request. Missing required data.'];

@@ -46,6 +46,7 @@ session_start();
                 tw.overall_status,
                 tw.submission_date,
                 tw.last_updated,
+                tw.attachment,
                 u.firstname AS firstname, 
                 u.lastname AS lastname,
                 dep.department_name AS department_name,
@@ -185,6 +186,27 @@ session_start();
                 <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
                 <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
                 <div>
+                    <strong>Attachment</strong><br>
+
+                    <?php if (!empty($twform_details['attachment'])): ?>
+                        <?php 
+                            $filePath = "../uploads/documents/" . htmlspecialchars($twform_details['attachment']);
+                            $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                        ?>
+                        
+                        <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                            <a href="<?= $filePath ?>" target="_blank">
+                                <img src="<?= $filePath ?>" alt="Attachment" class="img-fluid" style="max-width: 500px; max-height: 500px;">
+                            </a>
+                        <?php else: ?>
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php endif; ?>
+
+                    <?php else: ?>
+                        <span>No attachment available.</span>
+                    <?php endif; ?>
+                </div>
+                <div>
                     <strong>Proponents and Receipt Details:</strong> 
                     <?php if (!empty($proponents)): ?>
                         <ul>
@@ -261,20 +283,20 @@ session_start();
                                     <tr>
                                         <td><?= $index + 1 ?></td>
                                         <td><?= htmlspecialchars($twform2['thesis_title']) ?></td>
-                                        <td><?= htmlspecialchars($twform2['defense_date']) ?></td>
+                                        <td><?= htmlspecialchars($twform2['defense_date']  ?? 'No Date assigned yet') ?></td>
                                         <td>
                                             <?php 
-                                            $time_str = trim($twform2['time']);  
+                                            $time_str = trim($twform2['time']  ?? 'No Time assigned yet');  
                                             $formatted_time = DateTime::createFromFormat('H:i:s', $time_str);
 
                                             if ($formatted_time) {
                                                 echo htmlspecialchars($formatted_time->format('g:i A')); 
                                             } else {
-                                                echo "Invalid time"; 
+                                                echo "No time assigned yet"; 
                                             }
                                             ?>
                                         </td>
-                                        <td><?= htmlspecialchars($twform2['place']) ?></td>
+                                        <td><?= htmlspecialchars($twform2['place']  ?? 'No venue assigned yet') ?></td>
                                         <td><?= htmlspecialchars($twform2['date_created']) ?></td>
                                     </tr>
                                 <?php endforeach; ?>

@@ -8,8 +8,9 @@ if (empty($search)) {
     exit();
 }
 
-$query = "SELECT user_id, firstname, lastname, user_type FROM accounts 
-          WHERE (user_type = 'panelist' OR user_type = 'chairman') 
+$query = "SELECT user_id, firstname, lastname 
+          FROM accounts 
+          WHERE user_type = 'panelist' 
           AND (firstname LIKE ? OR lastname LIKE ?) 
           ORDER BY firstname, lastname LIMIT 10";
 
@@ -24,7 +25,6 @@ while ($row = $result->fetch_assoc()) {
     $panelists[] = [
         'user_id' => $row['user_id'],
         'name' => $row['firstname'] . ' ' . $row['lastname'],
-        'user_type' => $row['user_type']
     ];
 }
 

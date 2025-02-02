@@ -285,7 +285,7 @@ ul.suggestion-box {
     position: absolute;
     background: white;
     border: 1px solid #ccc;
-    max-height: 200px;
+    max-height: 150px;
     overflow-y: auto;
     width: 100%;
 }

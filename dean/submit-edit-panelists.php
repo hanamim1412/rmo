@@ -1,82 +1,95 @@
 <?php
+// submit-edit-panelists.php
 session_start();
 require '../config/connect.php';
+include '../messages.php';
 
-function validateInputs($tw_form_id, $panelist_ids) {
-    if (!filter_var($tw_form_id, FILTER_VALIDATE_INT)) {
-        return "Invalid form ID.";
-    }
-    if (count($panelist_ids) !== 4) {
-        return "You must select exactly 4 panelists.";
-    }
-    return null;
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
-    $tw_form_id = filter_var($_POST['tw_form_id'], FILTER_VALIDATE_INT);
-    $panelist_ids = $_POST['panelist_ids'];
-    $form_type = $_POST['form_type']; 
-
-    $validationError = validateInputs($tw_form_id, $panelist_ids);
-    if ($validationError) {
-        $_SESSION['messages'][] = ['tags' => 'danger', 'content' => $validationError];
-        header("Location: edit-assign-panelists.php?tw_form_id=$tw_form_id&form_type=$form_type");
-        exit();
-    }
-
-    $update_query = "UPDATE assigned_panelists 
-                     SET user_id = ?, date_created = NOW()
-                     WHERE tw_form_id = ? AND assigned_panelist_id = (
-                        SELECT MIN(assigned_panelist_id) 
-                        FROM assigned_panelists 
-                        WHERE tw_form_id = ? 
-                        LIMIT 1 OFFSET ? 
-                     )";
-    $stmt = $conn->prepare($update_query);
-    if (!$stmt) {
-        $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Database error: Failed to prepare update statement.'];
-        header("Location: edit-assign-panelists.php?tw_form_id=$tw_form_id&form_type=$form_type");
-        exit();
-    }
-
-    foreach ($panelist_ids as $index => $panelist_id) {
-        $stmt->bind_param('iiii', $panelist_id, $tw_form_id, $tw_form_id, $index);
-        if (!$stmt->execute()) {
-            $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'An error occurred while updating panelists.'];
-            header("Location: edit-assign-panelists.php?tw_form_id=$tw_form_id&form_type=$form_type");
-            exit();
-        }
-    }
-
-    $redirectPage = '';
-    switch ($form_type) {
-        case 'twform_1':
-            $redirectPage = "tw-form1-details.php?tw_form_id=" . $tw_form_id;
-            break;
-        case 'twform_2':
-            $redirectPage = "tw-form2-details.php?tw_form_id=" . $tw_form_id;
-            break;
-        case 'twform_3':
-            $redirectPage = "tw-form3-details.php?tw_form_id=" . $tw_form_id;
-            break;
-        case 'twform_4':
-            $redirectPage = "tw-form4-details.php?tw_form_id=" . $tw_form_id;
-            break;
-        case 'twform_5':
-            $redirectPage = "tw-form5-details.php?tw_form_id=" . $tw_form_id;
-            break;
-        case 'twform_6':
-            $redirectPage = "tw-form6-details.php?tw_form_id=" . $tw_form_id;
-            break;
-        default:
-            $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Unknown form type. Redirecting to the main forms page.'];
-            $redirectPage = "tw-forms.php";
-            break;
-    }
-
-    $_SESSION['messages'][] = ['tags' => 'success', 'content' => 'Panelists successfully updated.'];
-    header("Location: $redirectPage");
+if (!isset($_POST['tw_form_id'], $_POST['form_type'], $_POST['panelist_ids'], $_POST['chairman_id'])) {
+    $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Invalid form submission.'];
+    header("Location: tw-forms.php");
     exit();
 }
+
+$tw_form_id = (int)$_POST['tw_form_id']; 
+$form_type = $_POST['form_type'];         
+$panelist_ids = $_POST['panelist_ids']; 
+$chairman_id = $_POST['chairman_id'];  
+
+function updateAssignedPanelist($conn, $tw_form_id, $panelist_id) {
+    
+    $query = "SELECT * FROM assigned_panelists WHERE tw_form_id = ? AND user_id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("ii", $tw_form_id, $panelist_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    
+    if ($result->num_rows > 0) {
+        
+        $updateQuery = "UPDATE assigned_panelists SET is_selected = 1, date_created = NOW() WHERE tw_form_id = ? AND user_id = ?";
+        $updateStmt = $conn->prepare($updateQuery);
+        $updateStmt->bind_param("ii", $tw_form_id, $panelist_id);
+        $updateStmt->execute();
+    } else {
+        $insertQuery = "INSERT INTO assigned_panelists (tw_form_id, user_id, is_selected, date_created) 
+                        VALUES (?, ?, 1, NOW())";
+        $insertStmt = $conn->prepare($insertQuery);
+        $insertStmt->bind_param("ii", $tw_form_id, $panelist_id);
+        $insertStmt->execute();
+    }
+}
+
+function updateAssignedChairman($conn, $tw_form_id, $chairman_id) {
+    
+    $query = "SELECT * FROM assigned_chairman WHERE tw_form_id = ? AND user_id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("ii", $tw_form_id, $chairman_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        
+        $updateQuery = "UPDATE assigned_chairman SET is_selected = 1, date_created = NOW() WHERE tw_form_id = ? AND user_id = ?";
+        $updateStmt = $conn->prepare($updateQuery);
+        $updateStmt->bind_param("ii", $tw_form_id, $chairman_id);
+        $updateStmt->execute();
+    } else {
+        
+        $insertQuery = "INSERT INTO assigned_chairman (tw_form_id, user_id, is_selected, date_created) 
+                        VALUES (?, ?, 1, NOW())";
+        $insertStmt = $conn->prepare($insertQuery);
+        $insertStmt->bind_param("ii", $tw_form_id, $chairman_id);
+        $insertStmt->execute();
+    }
+}
+
+// Begin transaction
+$conn->begin_transaction();
+try {
+    foreach ($panelist_ids as $panelist_id) {
+        updateAssignedPanelist($conn, $tw_form_id, $panelist_id);  
+    }
+
+    updateAssignedChairman($conn, $tw_form_id, $chairman_id);  
+
+    $conn->commit();
+    $_SESSION['messages'][] = ['tags' => 'success', 'content' => 'Panelists and Chairman successfully updated.'];
+} catch (Exception $e) {
+
+    $conn->rollback();
+    $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'An error occurred while updating panelists and chairman: ' . $e->getMessage()];
+}
+
+$redirectPages = [
+    'twform_1' => 'tw-form1-details.php',
+    'twform_2' => 'tw-form2-details.php',
+    'twform_3' => 'tw-form3-details.php',
+    'twform_4' => 'tw-form4-details.php',
+    'twform_5' => 'tw-form5-details.php',
+    'twform_6' => 'tw-form6-details.php'
+];
+$redirectPage = $redirectPages[$form_type] ?? 'tw-forms.php';
+
+header("Location: $redirectPage?tw_form_id=$tw_form_id");
+exit();
 ?>

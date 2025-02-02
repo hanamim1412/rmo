@@ -278,6 +278,61 @@ session_start();
                 
                 <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
                 <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
+                
+                <div>
+                    <strong>Attachment</strong><br>
+
+                    <?php if (!empty($twform_details['attachment'])): ?>
+                        <?php 
+                            $filePath = "../uploads/documents/" . htmlspecialchars($twform_details['attachment']);
+                            $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                        ?>
+                        
+                        <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                            
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php else: ?>
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php endif; ?>
+
+                    <?php else: ?>
+                        <span>No attachment available.</span>
+                    <?php endif; ?>
+                </div>
+                
+                <div>
+                    <strong>Proponents:</strong> 
+                    <?php if (!empty($proponents)): ?>
+                        <ul>
+                            <?php foreach ($proponents as $proponent): ?>
+                                <li><?= ucwords(htmlspecialchars($proponent['firstname'] . ' ' . $proponent['lastname'])) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <p>No proponents found for this form.</p>
+                    <?php endif; ?>
+                </div>
+                <div>
+                    <?php if (!empty($panelists)): ?>
+                        <ul>
+                                <strong>Assigned Panel examiners:</strong> 
+                                    <?php foreach ($panelists as $panelist): ?>
+                                        <li><?= ucwords(htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname'])) ?></li>
+                                    <?php endforeach; ?>
+                                    <strong>Assigned Chairman:</strong> 
+                                        <li><?= ucwords(htmlspecialchars($chairman['cm_firstname'] . ' ' . $chairman['cm_lastname'])) ?></li>
+                                    
+                            </ul>
+                                <a href="edit-assign-panelists.php?tw_form_id=<?= $twform_details['tw_form_id'] ?>" 
+                                    class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> Edit
+                                </a>    
+                        <?php else: ?>
+                            <p>No panelists and chairman found for this form.</p>
+                            <a href="assign-panelists.php?tw_form_id=<?= $twform_details['tw_form_id'] ?>" 
+                                class="btn btn-primary btn-sm">Assign Panel examiners
+                            </a>
+                        <?php endif; ?>
+                </div>
                 <div>
                     <?php if (!empty($twform_details['comments'])): ?>
                         <div id="remarks-display-comment">
@@ -304,60 +359,6 @@ session_start();
                             <button type="submit" class="btn btn-primary btn-sm mt-1">Send</button>
                         </form>
                     <?php endif; ?>
-                </div>
-                <div>
-                    <strong>Attachment</strong><br>
-
-                    <?php if (!empty($twform_details['attachment'])): ?>
-                        <?php 
-                            $filePath = "../uploads/documents/" . htmlspecialchars($twform_details['attachment']);
-                            $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
-                        ?>
-                        
-                        <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
-                            <a href="<?= $filePath ?>" target="_blank">
-                                <img src="<?= $filePath ?>" alt="Attachment" class="img-fluid" style="max-width: 500px; max-height: 500px;">
-                            </a>
-                        <?php else: ?>
-                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
-                        <?php endif; ?>
-
-                    <?php else: ?>
-                        <span>No attachment available.</span>
-                    <?php endif; ?>
-                </div>
-
-
- 
-                <div>
-                    <strong>Proponents:</strong> 
-                    <?php if (!empty($proponents)): ?>
-                        <ul>
-                            <?php foreach ($proponents as $proponent): ?>
-                                <li><?= ucwords(htmlspecialchars($proponent['firstname'] . ' ' . $proponent['lastname'])) ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php else: ?>
-                        <p>No proponents found for this form.</p>
-                    <?php endif; ?>
-                </div>
-                <div>
-                    <?php if (!empty($panelists)): ?>
-                        <ul>
-                                <strong>Assigned Panel examiners:</strong> 
-                                    <?php foreach ($panelists as $panelist): ?>
-                                        <li><?= ucwords(htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname'])) ?></li>
-                                    <?php endforeach; ?>
-                                <strong>Assigned Chairman:</strong> 
-                                    <li><?= ucwords(htmlspecialchars($chairman['cm_firstname'] . ' ' . $chairman['cm_lastname'])) ?></li>
-                            </ul>
-                                
-                        <?php else: ?>
-                            <p>No panelists and chairman found for this form.</p>
-                            <a href="assign-panelists.php?tw_form_id=<?= $twform_details['tw_form_id'] ?>" 
-                                class="btn btn-primary btn-sm">Assign Panel examiners
-                            </a>
-                        <?php endif; ?>
                 </div>
         </div>
 
@@ -388,6 +389,11 @@ session_start();
                                             <?php endif; ?>
                                         </td>
                                         <td>
+                                            <div id="remarks-display-<?= $title['proposed_title_id'] ?>">
+                                                <?= !empty($title['remarks']) ? htmlspecialchars($title['remarks']) : 'No remarks from rmo yet' ?>
+                                            </div>
+                                        </td>
+                                        <td>
                                             <?php if (isset($title['proposed_title_id']) && $title['is_selected']): ?>
                                                 <form method="post" action="update-title-status.php" onsubmit="return confirm('Are you sure you want to deselect this title?');" style="display:inline;">
                                                     <input type="hidden" name="proposed_title_id" value="<?= htmlspecialchars($title['proposed_title_id']); ?>">
@@ -405,22 +411,6 @@ session_start();
                                                     <button type="submit" class="btn btn-sm btn-outline-success">Selected</button>
                                                 </form>
                                             <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <div id="remarks-display-<?= $title['proposed_title_id'] ?>">
-                                                <?= !empty($title['remarks']) ? htmlspecialchars($title['remarks']) : 'No remarks yet' ?>
-                                                <button class="btn btn-sm btn-secondary" onclick="toggleTitleEdit(<?= $title['proposed_title_id'] ?>)">Edit</button>
-                                            </div>
-
-                                            <form action="submit-title-remarks.php" method="POST" id="edit-remarks-form-<?= $title['proposed_title_id'] ?>" style="display: none;">
-                                                <input type="hidden" name="proposed_title_id" value="<?= htmlspecialchars($title['proposed_title_id']) ?>">
-                                                <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
-                                                <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']); ?>">
-
-                                                <textarea name="remarks" rows="2" class="form-control form-control-sm" required><?= htmlspecialchars($title['remarks']); ?></textarea>
-                                                <button type="submit" class="btn btn-primary btn-sm mt-1">Save</button>
-                                                <button type="button" class="btn btn-secondary btn-sm mt-1" onclick="toggleTitleEdit(<?= $title['proposed_title_id'] ?>)">Cancel</button>
-                                            </form>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

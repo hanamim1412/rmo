@@ -116,17 +116,51 @@ session_start();
         return $stmt->get_result();
     }
 
-    function GetAssignedPanelist($tw_form_id) {
+    function GetPanelistsAndChairmanFromTwForm5($tw_form_id) {
         global $conn;
+        
         $query = "
-            SELECT
-                panelist.assigned_panelist_id,
-                panelist.tw_form_id,
-                acc.firstname AS panelist_firstname,
-                acc.lastname AS panelist_lastname
-            FROM assigned_panelists panelist
-            LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id AND acc.user_type = 'research_adviser'
-            WHERE panelist.tw_form_id = ?
+            SELECT 
+                p.assigned_panelist_id AS id, 
+                p.tw_form_id, 
+                acc.firstname AS panelist_firstname, 
+                acc.lastname AS panelist_lastname, 
+                NULL AS chairman_firstname, 
+                NULL AS chairman_lastname, 
+                'panelist' AS role
+            FROM assigned_panelists p
+            LEFT JOIN ACCOUNTS acc ON p.user_id = acc.user_id
+            WHERE p.tw_form_id = (
+                SELECT twf5.tw_form_id 
+                FROM twform_5 twf5
+                JOIN tw_forms tf ON twf5.tw_form_id = tf.tw_form_id
+                WHERE tf.user_id = (
+                    SELECT user_id FROM tw_forms WHERE tw_form_id = ? LIMIT 1
+                )
+                LIMIT 1
+            )
+    
+            UNION ALL
+    
+            SELECT 
+                c.chairman_id AS id, 
+                c.tw_form_id, 
+                NULL AS panelist_firstname, 
+                NULL AS panelist_lastname, 
+                acc.firstname AS chairman_firstname, 
+                acc.lastname AS chairman_lastname, 
+                'chairman' AS role
+            FROM assigned_chairman c
+            LEFT JOIN ACCOUNTS acc ON c.user_id = acc.user_id
+            WHERE c.tw_form_id = (
+                SELECT twf5.tw_form_id 
+                FROM twform_5 twf5
+                JOIN tw_forms tf ON twf5.tw_form_id = tf.tw_form_id
+                WHERE tf.user_id = (
+                    SELECT user_id FROM tw_forms WHERE tw_form_id = ? LIMIT 1
+                )
+                LIMIT 1
+            )
         ";
         
         $stmt = $conn->prepare($query);
@@ -134,47 +168,34 @@ session_start();
             die("Database query failed: " . $conn->error);
         }
     
-        $stmt->bind_param("i", $tw_form_id);
+        $stmt->bind_param("ii", $tw_form_id, $tw_form_id);
         $stmt->execute();
         $result = $stmt->get_result();
     
         return $result->num_rows > 0 ? $result->fetch_all(MYSQLI_ASSOC) : [];
     }
+    
 
-    $tw_form_id = $_GET['tw_form_id']; 
+    $tw_form_id = $_GET['tw_form_id'] ?? null; 
     $twform_details = getTWFormDetails($tw_form_id); 
     $proponents = GetProponents($tw_form_id);   
     $manuscript = manuscript($tw_form_id);
-    $panelists = GetAssignedPanelist($tw_form_id);
+    if ($tw_form_id) {
+        $assigned_users = GetPanelistsAndChairmanFromTwForm5($tw_form_id);
+    } else {
+        die("Invalid TW Form ID");
+    }
 ?>
 
 
 <section id="twform-6-details" class="pt-4">
     <div class="header-container pt-4">
         <h4 class="text-left">
+        <a href="javascript:history.back()" class="btn btn-link">
+            <i class="fas fa-arrow-left" style="margin-right: 5px;text-decoration: none; color: black; font-size: 1.2rem;"></i>
+         </a>
             TW form 6: Approval of Binding
         </h4>
-    </div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <a href="javascript:history.back()" class="btn btn-link" style="font-size: 1rem; text-decoration: none; color: black;">
-            <i class="fas fa-arrow-left" style="margin-right: 10px; font-size: 1.2rem;"></i>
-            Back
-        </a>
-        <div class="actions">
-            <?php if ($twform_details['user_id'] != $user_id): ?>
-                <form action="update_status.php" method="POST" style="display: inline; margin-left: 10px;">
-                    <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']) ?>">
-                    <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
-                    <label for="overall_status">Update Status:</label>
-                    <select name="overall_status" id="overall_status" class="form-select form-select-sm d-inline" style="width: auto;" required>
-                        <option value="pending" <?= $twform_details['overall_status'] === 'pending' ? 'selected' : '' ?>>Pending</option>
-                         <option value="approved" <?= $twform_details['overall_status'] === 'approved' ? 'selected' : '' ?>>Approved</option>
-                        <option value="rejected" <?= $twform_details['overall_status'] === 'rejected' ? 'selected' : '' ?>>Rejected</option>
-                    </select>
-                    <button type="submit" class="btn btn-success btn-sm">Update Status</button>
-                </form>
-            <?php endif; ?>
-        </div>
     </div>
     
         <?php if (!empty($messages)): ?>
@@ -210,6 +231,8 @@ session_start();
                 <div><strong>Course:</strong> <?= ucwords(htmlspecialchars($twform_details['course_name']))?></div>
                 <div><strong>Institutional Research Agenda:</strong> <?= htmlspecialchars($twform_details['ir_agenda_name']) ?></div> 
                 <div><strong>College Research Agenda:</strong> <?= htmlspecialchars($twform_details['col_agenda_name']) ?></div> 
+                <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
+                <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
                 <div>
                     <?php if (!empty($twform_details['comments'])): ?>
                         <div>
@@ -234,57 +257,25 @@ session_start();
                         </form>
                     <?php endif; ?>
                 </div>  
-                <div><strong>Panel of Examiners:</strong> 
-                        <?php if (!empty($panelists)): ?>
-                            <ul>
-                                <?php foreach ($panelists as $panelist): ?>
-                                    <li><?= ucwords(htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname'])) ?></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php else: ?>
-                            <p>No panelists found for this form.</p>
-                            <a href="assign-panelists.php?tw_form_id=<?= $twform_details['tw_form_id'] ?>" 
-                                class="btn btn-primary btn-sm">Assign Panelists
-                            </a>
-                        <?php endif; ?>
-                        <a href="edit-assign-panelists.php?tw_form_id=<?= $twform_details['tw_form_id'] ?>" 
-                                class="btn btn-success btn-sm">Edit Panelists
-                            </a>
-                </div>
                 <div>
-                    <?php if (!empty($twform_details['statistician']) && !empty($twform_details['editor'])): ?>
-                        <div>
-                            <strong>Statistician and Editor:</strong> 
-                            <ul id="view-remarks">
-                                <li><?= htmlspecialchars($twform_details['statistician']); ?></li>
-                                <li><?= htmlspecialchars($twform_details['editor']); ?></li>
-                            </ul>
-                            <button class="btn btn-sm btn-secondary" id="edit-remarks-btn" onclick="toggleEdit()">Edit</button>
-                        </div>
-                        <form action="update-tw6.php" method="POST" id="edit-remarks-form" style="display: none;">
-                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
-                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
-                            <div class="form-group col-md-6 mb1">
-                                <input type="text" name="statistician" class="form-control mb-1" value="<?= htmlspecialchars($twform_details['statistician']); ?>" required>
-                                <input type="text" name="editor" class="form-control" value="<?= htmlspecialchars($twform_details['editor']); ?>" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-sm mt-1">Update</button>
-                            <button type="button" class="btn btn-secondary btn-sm mt-1" onclick="toggleEdit()">Cancel</button>
-                        </form>
+                    <strong>Assigned Panelists and Chairman:</strong>
+                    <?php if (!empty($assigned_users)): ?>
+                        <ul>
+                            <?php foreach ($assigned_users as $user): ?>
+                                <li>
+                                    <?= ucwords(htmlspecialchars(
+                                        $user['role'] === 'panelist' 
+                                            ? $user['panelist_firstname'] . ' ' . $user['panelist_lastname'] 
+                                            : $user['chairman_firstname'] . ' ' . $user['chairman_lastname']
+                                    )) ?>
+                                    (<?= ucfirst($user['role']) ?>)
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
                     <?php else: ?>
-                        <form action="update-tw6.php" method="POST" style="display: inline;">
-                            <label for="tw6"><strong>Statistician and Editor:</strong></label>
-                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']); ?>">
-                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']); ?>">
-                            <div class="form-group col-md-6 mb-1">
-                                <input type="text" name="statistician" class="form-control mb-1" placeholder="Enter Statistician" required>
-                                <input type="text" name="editor" class="form-control" placeholder="Enter Editor" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-sm mt-1">Update</button>
-                        </form>
+                        <p>No panelists or chairman assigned yet.</p>
                     <?php endif; ?>
                 </div>
-
                <div>
                     <strong>Proponents Details:</strong> 
                     <?php if (!empty($proponents)): ?>
@@ -308,7 +299,7 @@ session_start();
                                     View Manuscript
                                     </a>
                                     <a href="../uploads/<?= htmlspecialchars($file['file_path']) ?>"
-                                        download class="btn btn-sm btn-success">
+                                        download class="btn btn-sm btn-warning">
                                         Download
                                     </a>
                                 <?php endwhile; ?>
@@ -316,9 +307,44 @@ session_start();
                                 No manuscript available
                             <?php endif; ?>
                 </div>
-                <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
-                <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
                 
+        </div>
+        <div class="details-section">
+        <div>
+                <h4>Research Compliance Documents</h4>
+                <div class="form-group">
+                    <?php 
+                    $documents = [
+                        "Certificate of Conformity Status",
+                        "Certificate of Data Gathering",
+                        "Certificate of Similarity",
+                        "CV of Certification from Data Analyst",
+                        "Article Submitted to Repository"
+                    ];
+
+                    $query = "SELECT document_name, is_checked FROM twform_6_compliance WHERE tw_form_id = ?";
+                    $stmt = $conn->prepare($query);
+                    $stmt->bind_param("i", $tw_form_id);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+                    $checked_documents = [];
+
+                    while ($row = $result->fetch_assoc()) {
+                        $checked_documents[$row['document_name']] = $row['is_checked'];
+                    }
+
+                    foreach ($documents as $doc):
+                        $isChecked = isset($checked_documents[$doc]) && $checked_documents[$doc] == 1;
+                    ?>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <?= htmlspecialchars($doc) ?>: 
+                                <strong><?= $isChecked ? 'Complied' : 'Not Complied' ?></strong>
+                            </label>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
         </div>
 
 </section>
@@ -335,19 +361,6 @@ session_start();
             });
         }, 5000);
     });
-
-    function toggleEdit() {
-        const viewRemarks = document.getElementById('view-remarks');
-        const editRemarksForm = document.getElementById('edit-remarks-form');
-        
-        if (viewRemarks.style.display === 'none') {
-            viewRemarks.style.display = 'block';
-            editRemarksForm.style.display = 'none';
-        } else {
-            viewRemarks.style.display = 'none';
-            editRemarksForm.style.display = 'block';
-        }
-    }
 </script>
 
 <?php

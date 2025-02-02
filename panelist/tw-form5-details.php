@@ -47,6 +47,7 @@ session_start();
                 tw.overall_status,
                 tw.submission_date,
                 tw.last_updated,
+                tw.attachment,
                 u.firstname AS firstname, 
                 u.lastname AS lastname,
                 dep.department_name AS department_name,
@@ -61,7 +62,7 @@ session_start();
             LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
             LEFT JOIN institutional_research_agenda ira ON tw.ir_agenda_id = ira.ir_agenda_id
             LEFT JOIN college_research_agenda col_agenda ON tw.col_agenda_id = col_agenda.agenda_id
-            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'panelist'
+            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'research_adviser'
             WHERE tw.tw_form_id = ?
             " . ($user_type === 'student' ? "AND u.user_type = 'student' AND tw.user_id = ?" : "") . "
             ORDER BY tw.last_updated DESC
@@ -103,30 +104,7 @@ session_start();
             $stmt->execute();
             return $stmt->get_result();
     }
-    function GetAssignedPanelist($tw_form_id) {
-        global $conn;
-        $query = "
-            SELECT
-                panelist.assigned_panelist_id,
-                panelist.tw_form_id,
-                acc.firstname AS panelist_firstname,
-                acc.lastname AS panelist_lastname
-            FROM assigned_panelists panelist
-            LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id AND acc.user_type = 'panelist'
-            WHERE panelist.tw_form_id = ?
-        ";
-        
-        $stmt = $conn->prepare($query);
-        if (!$stmt) {
-            die("Database query failed: " . $conn->error);
-        }
-    
-        $stmt->bind_param("i", $tw_form_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-    
-        return $result->num_rows > 0 ? $result->fetch_all(MYSQLI_ASSOC) : [];
-    }
+
     function manuscript($tw_form_id) {
         global $conn;
         $query = "SELECT * FROM ATTACHMENTS WHERE tw_form_id = ?";
@@ -168,38 +146,64 @@ session_start();
         
         return $eval_criteria;
     }
+    function GetAssignedPanelistsAndChairman($tw_form_id) {
+        global $conn;
+        $query = "
+            SELECT
+                panelist.assigned_panelist_id,
+                panelist.tw_form_id,
+                acc.firstname AS panelist_firstname,
+                acc.lastname AS panelist_lastname,
+                NULL AS chairman_firstname,
+                NULL AS chairman_lastname,
+                'panelist' AS role
+            FROM assigned_panelists panelist
+            LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id AND acc.user_type = 'panelist'
+            WHERE panelist.tw_form_id = ?
+            
+            UNION ALL
+            
+            SELECT
+                chairman.chairman_id,
+                chairman.tw_form_id,
+                NULL AS panelist_firstname,
+                NULL AS panelist_lastname,
+                acc.firstname AS chairman_firstname,
+                acc.lastname AS chairman_lastname,
+                'chairman' AS role
+            FROM assigned_chairman chairman
+            LEFT JOIN ACCOUNTS acc ON chairman.user_id = acc.user_id AND acc.user_type = 'chairman'
+            WHERE chairman.tw_form_id = ?
+        ";
+        
+        $stmt = $conn->prepare($query);
+        if (!$stmt) {
+            die("Database query failed: " . $conn->error);
+        }
+    
+        $stmt->bind_param("ii", $tw_form_id, $tw_form_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    
+        return $result->num_rows > 0 ? $result->fetch_all(MYSQLI_ASSOC) : [];
+    }
+
     $tw_form_id = $_GET['tw_form_id']; 
     $twform_details = getTWFormDetails($tw_form_id); 
     $twform5_details = getTWForm5Details($tw_form_id);  
     $manuscript = manuscript($tw_form_id);
-    $panelists = GetAssignedPanelist($tw_form_id);  
+    $assigned_users = GetAssignedPanelistsAndChairman($tw_form_id); 
     $eval_criteria = getEvalCriteria($tw_form_id, $user_id);
 ?>
 <section id="twform-5-details" class="pt-4">
     <div class="header-container pt-4">
-        <h4 class="text-left">
-            TW form 5: Rating for Oral Examination/Final Defense
-        </h4>
-    </div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <a href="javascript:history.back()" class="btn btn-link" style="font-size: 1rem; text-decoration: none; color: black;">
-            <i class="fas fa-arrow-left" style="margin-right: 10px; font-size: 1.2rem;"></i>
-            Back
-        </a>
-        <div class="actions">
-            <?php if ($twform_details['user_id'] != $user_id): ?>
-                <form action="update_status.php" method="POST" style="display: inline; margin-left: 10px;">
-                    <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']) ?>">
-                    <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
-                    <label for="overall_status">Update Status:</label>
-                    <select name="overall_status" id="overall_status" class="form-select form-select-sm d-inline" style="width: auto;" required>
-                        <option value="pending" <?= $twform_details['overall_status'] === 'pending' ? 'selected' : '' ?>>Pending</option>
-                         <option value="approved" <?= $twform_details['overall_status'] === 'approved' ? 'selected' : '' ?>>Approved</option>
-                        <option value="rejected" <?= $twform_details['overall_status'] === 'rejected' ? 'selected' : '' ?>>Rejected</option>
-                    </select>
-                    <button type="submit" class="btn btn-success btn-sm">Update Status</button>
-                </form>
-            <?php endif; ?>
+        <div class="d-flex justify-content-start align-items-center mb-4">
+            <a href="javascript:history.back()" class="btn btn-link" style="font-size: 1rem; text-decoration: none; color: black;">
+                <i class="fas fa-arrow-left" style="margin-right: 10px; font-size: 1.2rem;"></i>
+            </a>
+            <h4 class="text-left">
+                TW form 5: Rating for Oral Examination/Final Defense
+            </h4>
         </div>
     </div>
     
@@ -235,23 +239,47 @@ session_start();
                 <div><strong>Department:</strong> <?= htmlspecialchars($twform_details['department_name']) ?></div>
                 <div><strong>Course:</strong> <?= ucwords(htmlspecialchars($twform_details['course_name']))?></div>
                 <div><strong>Comments:</strong> <?= htmlspecialchars($twform_details['comments']) ?></div> 
-                <div><strong>Assigned Panelists:</strong> 
-                        <?php if (!empty($panelists)): ?>
-                            <ul>
-                                <?php foreach ($panelists as $panelist): ?>
-                                    <li><?= ucwords(htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname'])) ?></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php else: ?>
-                            <p>No panelists found for this form.</p>
-                            <a href="assign-panelists.php?tw_form_id=<?= $twform_details['tw_form_id'] ?>" 
-                                class="btn btn-primary btn-sm">Assign Panelists
-                            </a>
-                        <?php endif; ?>
-                </div>
                 <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
                 <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
-                
+                <div>
+                    <strong>Attachment</strong><br>
+
+                    <?php if (!empty($twform_details['attachment'])): ?>
+                        <?php 
+                            $filePath = "../uploads/documents/" . htmlspecialchars($twform_details['attachment']);
+                            $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                        ?>
+                        
+                        <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                            
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php else: ?>
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php endif; ?>
+
+                    <?php else: ?>
+                        <span>No attachment available.</span>
+                    <?php endif; ?>
+                </div>
+                <div>
+                    <strong>Assigned Panelists and Chairman:</strong>
+                    <?php if (!empty($assigned_users)): ?>
+                        <ul>
+                            <?php foreach ($assigned_users as $user): ?>
+                                <li>
+                                    <?= ucwords(htmlspecialchars(
+                                        $user['role'] === 'panelist' 
+                                            ? $user['panelist_firstname'] . ' ' . $user['panelist_lastname'] 
+                                            : $user['chairman_firstname'] . ' ' . $user['chairman_lastname']
+                                    )) ?>
+                                    (<?= ucfirst($user['role']) ?>)
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <p>No panelists or chairman assigned yet.</p>
+                    <?php endif; ?>
+                </div> 
         </div>
 
             <div class="table-container mt-4">
@@ -316,22 +344,27 @@ session_start();
                                             <span class="<?= $badgeClass ?>"><?= $form_status ?></span>
                                         </td>
                                         <td>
-                                                <div class="d-flex justify-content-end align-items-center" style="gap: 10px;">
-                                                    <?php if($twform5['status'] === 'pending'): ?>
-                                                        <a href="evaluation_form.php?tw_form_id=<?= $twform_details['tw_form_id'] ?>" 
-                                                            class="btn btn-primary btn-sm mt-2">Add Scores</a>
-                                                        </a>
+                                            <div class="d-flex justify-content-end align-items-center" style="gap: 10px;">
+                                                <?php if (!empty($eval_criteria)): ?>
+                                                    <?php if ($twform5['status'] === 'pending'): ?>
+                                                        <!-- Show Edit and Delete buttons when status is pending -->
+                                                        <a href="edit-evaluation_form.php?tw_form_id=<?= htmlspecialchars($twform_details['tw_form_id']) ?>" class="btn btn-warning btn-sm mt-2">Edit Scores</a>
+                                                        <form action="delete-evalform.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this Evaluation?');">
+                                                            <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']) ?>">
+                                                            <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']) ?>">
+                                                            <button type="submit" class="btn btn-danger btn-sm mt-2">Delete Scores</button>
+                                                        </form>
+                                                    <?php elseif ($twform5['status'] === 'GRADED'): ?>
+                                                        <!-- No buttons displayed if status is GRADED -->
+                                                        <span class="text-muted">Cannot modify anymore</span>
                                                     <?php endif; ?>
-                                                    <?php if($eval_criteria): ?>
-                                                        <a href="edit-evaluation_form.php?tw_form_id=<?= htmlspecialchars($twform_details['tw_form_id'])?>" class="btn btn-warning btn-sm mt-2">Edit Scores</a>
-                                                            <form action="delete-evalform.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this Evaluation?');">
-                                                                <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id'])?>">
-                                                                <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type']) ?>">
-                                                                <button type="submit" class="btn btn-danger btn-sm mt-2">Delete Scores</button>
-                                                            </form>
-                                                    <?php endif; ?>
-                                                </div>
+                                                <?php else: ?>
+                                                    <!-- Show Add Scores button if no eval_criteria exists -->
+                                                    <a href="evaluation_form.php?tw_form_id=<?= htmlspecialchars($twform_details['tw_form_id']) ?>" class="btn btn-primary btn-sm mt-2">Add Scores</a>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
+
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>

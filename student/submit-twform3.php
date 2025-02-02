@@ -21,8 +21,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $col_agenda_id = isset($_POST['col_agenda_id']) ? (int) $_POST['col_agenda_id'] : 0;
     $student_name = isset($_POST['student']) ? $_POST['student'] : '';
     $thesis_title = isset($_POST['thesis_title']) ? $_POST['thesis_title'] : '';
-    $attachment = isset($_POST['attachment']) ? $_POST['attachment'] : '';
     
+    $upload_dir = "../uploads/documents/"; 
+
+    if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] == UPLOAD_ERR_OK) {
+        $file_name = basename($_FILES['attachment']['name']);
+        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+    
+        $allowed_types = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx'];
+        if (!in_array($file_ext, $allowed_types)) {
+            $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "Invalid file type. Allowed: JPG, PNG, PDF, DOC, DOCX."];
+            header("Location: twform_3.php");
+            exit();
+        }
+        $new_file_name = "twform3_" . time() . "_" . uniqid() . "." . $file_ext;
+        $target_file = $upload_dir . $new_file_name;
+    
+        if (move_uploaded_file($_FILES['attachment']['tmp_name'], $target_file)) {
+            $file_path = $new_file_name; 
+        } else {
+            $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "File upload failed. Please try again."];
+            header("Location: twform_3.php");
+            exit();
+        }
+    } else {
+        $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "No file uploaded or upload error occurred."];
+        header("Location: twform_3.php");
+        exit();
+    }
+
 
     if (empty($department_id) || empty($course_id) || empty($adviser_id) || empty($ir_agenda_id) || empty($col_agenda_id) || empty($thesis_title)) {
         $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Please fill out all required fields.'];
@@ -33,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $query = "INSERT INTO tw_forms (form_type, user_id, ir_agenda_id, col_agenda_id, department_id, course_id, research_adviser_id, attachment, overall_status, submission_date, last_updated) 
               VALUES ('twform_3', ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())";
     $stmt = mysqli_prepare($conn, $query);
-    mysqli_stmt_bind_param($stmt, 'iiiiiis', $user_id, $ir_agenda_id, $col_agenda_id, $department_id, $course_id, $adviser_id, $attachment);
+    mysqli_stmt_bind_param($stmt, 'iiiiiis', $user_id, $ir_agenda_id, $col_agenda_id, $department_id, $course_id, $adviser_id, $file_path);
     mysqli_stmt_execute($stmt);
     $tw_form_id = mysqli_insert_id($conn); 
 

@@ -46,6 +46,7 @@ session_start();
                 tw.overall_status,
                 tw.submission_date,
                 tw.last_updated,
+                tw.attachment,
                 u.firstname AS firstname, 
                 u.lastname AS lastname,
                 dep.department_name AS department_name,
@@ -185,6 +186,25 @@ session_start();
                 <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
                 <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
                 <div>
+                    <strong>Attachment</strong><br>
+
+                    <?php if (!empty($twform_details['attachment'])): ?>
+                        <?php 
+                            $filePath = "../uploads/documents/" . htmlspecialchars($twform_details['attachment']);
+                            $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                        ?>
+                        
+                        <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php else: ?>
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php endif; ?>
+
+                    <?php else: ?>
+                        <span>No attachment available.</span>
+                    <?php endif; ?>
+                </div>
+                <div>
                     <strong>Proponents and Receipt Details:</strong> 
                     <?php if (!empty($proponents)): ?>
                         <ul>
@@ -261,10 +281,10 @@ session_start();
                                     <tr>
                                         <td><?= $index + 1 ?></td>
                                         <td><?= htmlspecialchars($twform4['thesis_title']) ?></td>
-                                        <td><?= htmlspecialchars($twform4['defense_date']) ?></td>
+                                        <td><?= htmlspecialchars($twform4['defense_date'] ?? 'No assigned Date yet') ?></td>
                                         <td>
                                             <?php 
-                                            $time_str = trim($twform4['time']);  
+                                            $time_str = trim($twform4['time'] ?? 'No assigned Time yet');  
                                             $formatted_time = DateTime::createFromFormat('H:i:s', $time_str);
 
                                             if ($formatted_time) {
@@ -274,7 +294,7 @@ session_start();
                                             }
                                             ?>
                                         </td>
-                                        <td><?= htmlspecialchars($twform4['place']) ?></td>
+                                        <td><?= htmlspecialchars($twform4['place'] ?? 'No assigned Venue yet') ?></td>
                                         <td><?= htmlspecialchars($twform4['date_submitted']) ?></td>
                                     </tr>
                                 <?php endforeach; ?>

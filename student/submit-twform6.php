@@ -17,7 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-
     $user_id = $_POST['user_id'];
     $department_id = (int) $_POST['department_id'];
     $course_id = (int) $_POST['course_id'];
@@ -26,7 +25,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $col_agenda_id = (int) $_POST['col_agenda_id'];
     $thesis_title = $_POST['thesis_title'];
     $manuscript = $_FILES['manuscript'];
+    $upload_dir = "../uploads/documents/"; 
 
+    if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] == UPLOAD_ERR_OK) {
+        $file_name = basename($_FILES['attachment']['name']);
+        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+    
+        $allowed_types = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx'];
+        if (!in_array($file_ext, $allowed_types)) {
+            $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "Invalid file type. Allowed: JPG, PNG, PDF, DOC, DOCX."];
+            header("Location: twform_6.php");
+            exit();
+        }
+        $new_file_name = "twform6_" . time() . "_" . uniqid() . "." . $file_ext;
+        $target_file = $upload_dir . $new_file_name;
+    
+        if (move_uploaded_file($_FILES['attachment']['tmp_name'], $target_file)) {
+            $file_path = $new_file_name; 
+        } else {
+            $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "File upload failed. Please try again."];
+            header("Location: twform_6.php");
+            exit();
+        }
+    } else {
+        $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "No file uploaded or upload error occurred."];
+        header("Location: twform_6.php");
+        exit();
+    }
     mysqli_begin_transaction($conn);
     try {
 
@@ -38,20 +63,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ir_agenda_id, 
             col_agenda_id, 
             research_adviser_id, 
+            attachment,
             overall_status, 
             submission_date, 
             last_updated
         ) 
-                VALUES ('twform_6', ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())";
+                VALUES ('twform_6', ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())";
         $stmt = mysqli_prepare($conn, $query);
         mysqli_stmt_bind_param($stmt, 
-        'iiiiii', 
+        'iiiiiis', 
                 $user_id, 
                 $department_id, 
                     $course_id, 
                     $ir_agenda_id, 
                     $col_agenda_id, 
-                    $adviser_id
+                    $adviser_id,
+                    $file_path
                 );
             
         

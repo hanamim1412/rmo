@@ -209,14 +209,10 @@ if (!$form_data) {
                 </div>
                 <div class="form-group col-md-4">
                     <label>Adviser</label>
-                    <select name="adviser_id" class="form-control form-select" required>
-                        <?php foreach ($advisers as $adviser): ?>
-                            <option value="<?= htmlspecialchars($adviser['user_id']) ?>" 
-                                <?= $adviser['is_selected'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($adviser['firstname'] . ' ' . $adviser['lastname']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                        <input type="text" class="form-control" id="adviser" name="adviser_name" 
+                        value="<?= htmlspecialchars($form_data['adviser_firstname'] . ' ' . $form_data['adviser_lastname']) ?>" required>
+                        <input type="hidden" id="adviser_id" name="adviser_id" value="<?= htmlspecialchars($form_data['adviser_id'] ?? '') ?>">
+                        <div id="adviser-suggestions" class="autocomplete-suggestions"></div>
                 </div>
             </div>
 
@@ -243,6 +239,30 @@ if (!$form_data) {
                             </option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-4">
+                    <label>Scanned Tw form 1</label>
+                    <?php if(!empty($form_data['attachment'])) :?>
+                        <?php 
+                            $filePath = "../uploads/documents/" . htmlspecialchars($form_data['attachment']);
+                            $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                            ?>
+                            <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                            <a href="<?= $filePath ?>" target="_blank">
+                                <img src="<?= $filePath ?>" alt="Attachment" class="img-fluid" style="max-width: 150px; max-height: 150px;">
+                            </a>
+                        <?php else: ?>
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">View/Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <span class="badge badge-danger badge-sm">No attachment available</span>
+                    <?php endif; ?>
+                </div>
+                <div class="form-group col-md-4">
+                    <label for="document">Upload New Scanned TW form 1</label>
+                    <input type="file" name="new_attachment" id="attachment" class="form-control">
                 </div>
             </div>
 
@@ -319,25 +339,6 @@ if (!$form_data) {
                 </div>
             </div>
 
-            <h5>Proposal Hearing Details</h5>
-            <div class="form-row">
-                <div class="form-group col-md-4">
-                    <label>Defense Date</label>
-                    <input type="date" name="defense_date" class="form-control"
-                        value="<?= htmlspecialchars($form_data['defense_date']) ?>" required>
-                </div>
-                <div class="form-group col-md-4">
-                    <label>Defense Time</label>
-                    <input type="time" name="defense_time" class="form-control"
-                        value="<?= htmlspecialchars($form_data['time']) ?>" required>
-                </div>
-                <div class="form-group col-md-4">
-                    <label>Defense Place</label>
-                    <input type="text" name="defense_place" class="form-control" 
-                        value="<?= htmlspecialchars($form_data['place']) ?>" required>
-                </div>
-            </div>
-
             <button type="submit" class="btn btn-primary btn-sm">Save</button>
         </form>                    
     </div>      
@@ -367,7 +368,44 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 5000);
     });
 });
+document.addEventListener('DOMContentLoaded', () => {
+    const adviserInput = document.getElementById('adviser');
+    const adviserIdInput = document.getElementById('adviser_id'); 
+    const adviserSuggestions = document.getElementById('adviser-suggestions');
 
+    adviserInput.addEventListener('input', function() {
+        const query = adviserInput.value.trim();
+
+        if (query.length > 2) { 
+            fetch(`autocomplete_adviser.php?q=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    adviserSuggestions.innerHTML = ''; 
+                    if (data.length > 0) {
+                        data.forEach(adviser => {
+                            const suggestionItem = document.createElement('div');
+                            suggestionItem.classList.add('autocomplete-item');
+                            suggestionItem.textContent = adviser.firstname + ' ' + adviser.lastname;
+                            suggestionItem.addEventListener('click', function() {
+                                adviserInput.value = adviser.firstname + ' ' + adviser.lastname; 
+                                adviserIdInput.value = adviser.user_id;
+                                adviserSuggestions.innerHTML = '';
+                            });
+                            adviserSuggestions.appendChild(suggestionItem);
+                        });
+                    } else {
+                        adviserSuggestions.innerHTML = '<div class="p-2">No advisers found</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching advisers:', error);
+                });
+        } else {
+            adviserSuggestions.innerHTML = '';
+        }
+    });
+
+});
 </script>
 
 
@@ -410,5 +448,29 @@ document.addEventListener('DOMContentLoaded', function () {
     width: 5rem;
     height: 5rem;
     color: #007bff; 
+}
+.autocomplete-suggestions {
+    position: absolute;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: white;
+    max-height: 150px;
+    overflow-y: auto;
+    width: 90%;
+    z-index: 1000;
+}
+.autocomplete-item {
+    padding: 10px;
+    cursor: pointer;
+}
+.autocomplete-item:hover {
+    background: #f0f0f0;
+}
+
+.suggestion-box .no-suggestions {
+    color: #888;
+    font-style: italic;
+    padding: 5px;
+    text-align: center;
 }
 </style>

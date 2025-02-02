@@ -11,23 +11,34 @@
     $title = "Edit Agenda";
     ob_start();
 
-    if (isset($_GET['id'])) {
-        $id = $_GET['id'];
+    if (isset($_GET['ir_agenda_id']) && !empty($_GET['ir_agenda_id'])) {
+        $id = intval($_GET['ir_agenda_id']); 
+    
         $query = "SELECT ir_agenda_name, sub_areas FROM institutional_research_agenda WHERE ir_agenda_id = ?";
-        $stmt = mysqli_prepare($conn, $query);
+    $stmt = mysqli_prepare($conn, $query);
+
+    if ($stmt) {
         mysqli_stmt_bind_param($stmt, 'i', $id);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
-        
+
         if ($row = mysqli_fetch_assoc($result)) {
+            $ir_agenda_id = $id;
             $ir_agenda_name = $row['ir_agenda_name'];
-            $description = $row['sub_areas'];
+            $description = $row['sub_areas'] ?? ''; 
         } else {
             $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Agenda not found!'];
             header("Location: settings.php");
             exit();
         }
+    } else {
+        die("Query Error: " . mysqli_error($conn)); 
     }
+} else {
+    $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Invalid request!'];
+    header("Location: settings.php");
+    exit();
+}
 ?>
 <section id="settings" class="pt-4">
     <div class="header-container pt-4">
@@ -52,13 +63,17 @@
         <?php endif; ?>
         <div class="container">
             <form id="editform" method="POST" action="submit-edit-agenda.php" class="form-container">
-                <div class="mb-3">
+            <input type="hidden" name="ir_agenda_id" value="<?= htmlspecialchars($ir_agenda_id) ?>" required>
+            
+            <div class="mb-3">
                     <label for="ir_agenda_name" class="form-label">Agenda Name</label>
-                    <input type="text" id="ir_agenda_name" name="ir_agenda_name" class="form-control" value="<?= htmlspecialchars($ir_agenda_name) ?>" required>
+                    <input type="text" id="ir_agenda_name" name="ir_agenda_name" class="form-control" 
+                    value="<?= htmlspecialchars($ir_agenda_name) ?>" required>
                 </div>
                 <div class="mb-3">
                     <label for="description" class="form-label">Description</label>
-                    <textarea id="description" name="description" class="form-control" rows="8" required><?= htmlspecialchars($description) ?></textarea>
+                    <textarea id="description" name="description" class="form-control" rows="8" required>
+                        <?= htmlspecialchars($description) ?></textarea>
                 </div>
                 <button type="submit" class="btn btn-primary">Update Agenda</button>
             </form>

@@ -30,7 +30,8 @@ function getFormData($tw_form_id) {
             cra.agenda_name AS col_agenda_name,
             cra.agenda_id,
             adviser.firstname AS adviser_firstname,
-            adviser.lastname AS adviser_lastname
+            adviser.lastname AS adviser_lastname,
+            adviser.user_id AS adviser_id
         FROM tw_forms AS twforms 
         JOIN twform_1 AS form1 ON twforms.tw_form_id = form1.tw_form_id 
         LEFT JOIN institutional_research_agenda AS ir_agenda ON twforms.ir_agenda_id = ir_agenda.ir_agenda_id 
@@ -69,23 +70,6 @@ function getCourses($department_id) {
     return $courses;
 }
 
-function getAdvisers($department_id, $current_adviser_id) {
-    global $conn;
-    $query = "
-        SELECT user_id, firstname, lastname 
-        FROM accounts 
-        WHERE department_id = ? AND user_type = 'panelist'";
-    $stmt = mysqli_prepare($conn, $query);
-    mysqli_stmt_bind_param($stmt, 'i', $department_id);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    $advisers = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $row['is_selected'] = ($row['user_id'] == $current_adviser_id);
-        $advisers[] = $row;
-    }
-    return $advisers;
-}
 function getInstitutionalAgenda() {
     global $conn;
     $query = "SELECT ir_agenda_id, ir_agenda_name FROM institutional_research_agenda";
@@ -173,7 +157,6 @@ function GetTitles($tw_form_id) {
 $departments = getDepartments();
 $form_data = getFormData($tw_form_id);
 $courses = getCourses($form_data['department_id']);
-$advisers = getAdvisers($form_data['department_id'], $form_data['research_adviser_id']);
 $col_agendas = getCollegeAgenda($form_data['department_id'], $form_data['agenda_id']);
 $ir_agendas = getInstitutionalAgenda();
 $proponents = GetProponents($tw_form_id);  
@@ -196,7 +179,7 @@ if (!$form_data) {
     </a>
 
     <div class="container">
-        <form id="editTwForm1" method="POST" action="submit-edit-tw1.php" class="form-container">
+        <form id="editTwForm1" method="POST" action="submit-edit-tw1.php" class="form-container" enctype="multipart/form-data">
             <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($tw_form_id) ?>">
 
             <h2>Edit TW Form 1: Approval of Thesis Title</h2>
@@ -228,14 +211,10 @@ if (!$form_data) {
                 </div>
                 <div class="form-group col-md-4">
                     <label>Adviser</label>
-                    <select name="adviser_id" class="form-control form-select" required>
-                        <?php foreach ($advisers as $adviser): ?>
-                            <option value="<?= htmlspecialchars($adviser['user_id']) ?>" 
-                                <?= $adviser['is_selected'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($adviser['firstname'] . ' ' . $adviser['lastname']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                        <input type="text" class="form-control" id="adviser" name="adviser_name" 
+                        value="<?= htmlspecialchars($form_data['adviser_firstname'] . ' ' . $form_data['adviser_lastname']) ?>" required>
+                        <input type="hidden" id="adviser_id" name="adviser_id" value="<?= htmlspecialchars($form_data['adviser_id'] ?? '') ?>">
+                        <div id="adviser-suggestions" class="autocomplete-suggestions"></div>
                 </div>
             </div>
 
@@ -263,11 +242,34 @@ if (!$form_data) {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                
-                    <div class="form-group col-md-4">
-                        <label>Year Level</label>
-                        <input type="text" name="year_level" class="form-control" value="<?= htmlspecialchars($form_data['year_level']) ?>" required>
-                    </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-4">
+                    <label>Year Level</label>
+                    <input type="text" name="year_level" class="form-control" value="<?= htmlspecialchars($form_data['year_level']) ?>" required>
+                </div>
+                <div class="form-group col-md-4">
+                    <label>Scanned Tw form 1</label>
+                    <?php if(!empty($form_data['attachment'])) :?>
+                        <?php 
+                            $filePath = "../uploads/documents/" . htmlspecialchars($form_data['attachment']);
+                            $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                            ?>
+                            <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                            <a href="<?= $filePath ?>" target="_blank">
+                                <img src="<?= $filePath ?>" alt="Attachment" class="img-fluid" style="max-width: 150px; max-height: 150px;">
+                            </a>
+                        <?php else: ?>
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">View/Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <span class="badge badge-danger badge-sm">No attachment available</span>
+                    <?php endif; ?>
+                </div>
+                <div class="form-group col-md-4">
+                    <label for="document">Upload New Scanned TW form 1</label>
+                    <input type="file" name="new_attachment" id="attachment" class="form-control">
+                </div>
             </div>
 
             <div id="proponents-container">
@@ -290,15 +292,16 @@ if (!$form_data) {
                 <label>Proposed Titles and Rationale</label>
                 <?php foreach ($titles as $title): ?>
                     <div class="form-group mt-2">
-                        <textarea name="proposed_titles[]" class="form-control mb-1" rows="2" required>
-                            <?= htmlspecialchars($title['title_name']) ?>
-                        </textarea>
-                        <textarea name="rationales[]" class="form-control mb-1" rows="6" required>
-                            <?= htmlspecialchars($title['rationale']) ?>
-                        </textarea>
+                    <textarea name="title_name" class="form-control mb-1" style="text-align: justify;" rows="2" required>
+                        <?= htmlspecialchars($title['title_name']) ?>
+                    </textarea>
+                    <textarea name="rationale" class="form-control mb-1" style="text-align: justify;" rows="6" required>
+                        <?= htmlspecialchars($title['rationale']) ?>
+                    </textarea>
                     </div>
                 <?php endforeach; ?>
             </div>
+            
 
             <button type="submit" class="btn btn-primary btn-sm">Save</button>
         </form>
@@ -327,6 +330,44 @@ document.addEventListener('DOMContentLoaded', function () {
             alert.style.display = 'none'; 
         }, 5000);
     });
+});
+document.addEventListener('DOMContentLoaded', () => {
+    const adviserInput = document.getElementById('adviser');
+    const adviserIdInput = document.getElementById('adviser_id'); 
+    const adviserSuggestions = document.getElementById('adviser-suggestions');
+
+    adviserInput.addEventListener('input', function() {
+        const query = adviserInput.value.trim();
+
+        if (query.length > 2) { 
+            fetch(`autocomplete_adviser.php?q=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    adviserSuggestions.innerHTML = ''; 
+                    if (data.length > 0) {
+                        data.forEach(adviser => {
+                            const suggestionItem = document.createElement('div');
+                            suggestionItem.classList.add('autocomplete-item');
+                            suggestionItem.textContent = adviser.firstname + ' ' + adviser.lastname;
+                            suggestionItem.addEventListener('click', function() {
+                                adviserInput.value = adviser.firstname + ' ' + adviser.lastname; 
+                                adviserIdInput.value = adviser.user_id;
+                                adviserSuggestions.innerHTML = '';
+                            });
+                            adviserSuggestions.appendChild(suggestionItem);
+                        });
+                    } else {
+                        adviserSuggestions.innerHTML = '<div class="p-2">No advisers found</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching advisers:', error);
+                });
+        } else {
+            adviserSuggestions.innerHTML = '';
+        }
+    });
+
 });
 
 </script>
@@ -372,24 +413,22 @@ document.addEventListener('DOMContentLoaded', function () {
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         background-color: white;
     }
-ul.suggestion-box {
+.autocomplete-suggestions {
     position: absolute;
+    border: 1px solid #ddd;
+    border-radius: 10px;
     background: white;
-    border: 1px solid #ccc;
-    max-height: 200px;
+    max-height: 150px;
     overflow-y: auto;
-    width: 400px;
+    width: 90%;
     z-index: 1000;
 }
-
-li.suggestion-item {
-    padding: 5px;
+.autocomplete-item {
+    padding: 10px;
     cursor: pointer;
-    list-style: none;
 }
-
-li.suggestion-item:hover {
-    background-color: #f0f0f0;
+.autocomplete-item:hover {
+    background: #f0f0f0;
 }
 
 .suggestion-box .no-suggestions {

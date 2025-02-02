@@ -174,7 +174,8 @@ $ir_agendas = getInstitutionalAgenda();
                 </div>
                 <div class="form-group col-md-4">
                     <label>Adviser</label>
-                    <input type="text" class="form-control" id="adviser" name="adviser" placeholder="Type adviser name..." required>
+                        <input type="text" class="form-control" id="adviser" name="adviser" placeholder="Type adviser name..." required>
+                         <input type="hidden" class="form-control" id="adviser_id" name="adviser_id" required>
                     <div id="adviser-suggestions" class="autocomplete-suggestions"></div>
                 </div>
             </div>
@@ -212,7 +213,7 @@ $ir_agendas = getInstitutionalAgenda();
                 </div>
                 <div id="attachment" class="form-group col-md-4">
                     <label for="attachment"> Attach scanned TW form 3 </label>
-                    <input type="file" name="attachment" id="document" required>
+                    <input type="file" name="attachment" id="document" class="form-control" required>
                 </div>
             </div>
                 
@@ -270,6 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const colAgendaSelect = document.querySelector('select[name="col_agenda_id"]');
 
     const adviserInput = document.getElementById('adviser');
+    const adviserIdInput = document.getElementById('adviser_id');
     const adviserSuggestions = document.getElementById('adviser-suggestions');
 
     adviserInput.addEventListener('input', function() {
@@ -287,12 +289,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             suggestionItem.textContent = adviser.firstname + ' ' + adviser.lastname;
                             suggestionItem.addEventListener('click', function() {
                                 adviserInput.value = adviser.firstname + ' ' + adviser.lastname; 
+                                adviserIdInput.value = adviser.user_id;
                                 adviserSuggestions.innerHTML = '';
                             });
                             adviserSuggestions.appendChild(suggestionItem);
                         });
                     } else {
-                        adviserSuggestions.innerHTML = '<div>No advisers found</div>';
+                        adviserSuggestions.innerHTML = '<div class="p-2">No advisers found</div>';
                     }
                 })
                 .catch(error => {
@@ -374,5 +377,22 @@ document.addEventListener('DOMContentLoaded', () => {
     width: 5rem;
     height: 5rem;
     color: #007bff; 
+}
+.autocomplete-suggestions {
+    position: absolute;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: white;
+    max-height: 150px;
+    overflow-y: auto;
+    width: 90%;
+    z-index: 1000;
+}
+.autocomplete-item {
+    padding: 10px;
+    cursor: pointer;
+}
+.autocomplete-item:hover {
+    background: #f0f0f0;
 }
 </style>

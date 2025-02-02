@@ -116,17 +116,51 @@ session_start();
         return $stmt->get_result();
     }
 
-    function GetAssignedPanelist($tw_form_id) {
+    function GetPanelistsAndChairmanFromTwForm5($tw_form_id) {
         global $conn;
+        
         $query = "
-            SELECT
-                panelist.assigned_panelist_id,
-                panelist.tw_form_id,
-                acc.firstname AS panelist_firstname,
-                acc.lastname AS panelist_lastname
-            FROM assigned_panelists panelist
-            LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id AND acc.user_type = 'panelist'
-            WHERE panelist.tw_form_id = ?
+            SELECT 
+                p.assigned_panelist_id AS id, 
+                p.tw_form_id, 
+                acc.firstname AS panelist_firstname, 
+                acc.lastname AS panelist_lastname, 
+                NULL AS chairman_firstname, 
+                NULL AS chairman_lastname, 
+                'panelist' AS role
+            FROM assigned_panelists p
+            LEFT JOIN ACCOUNTS acc ON p.user_id = acc.user_id
+            WHERE p.tw_form_id = (
+                SELECT twf5.tw_form_id 
+                FROM twform_5 twf5
+                JOIN tw_forms tf ON twf5.tw_form_id = tf.tw_form_id
+                WHERE tf.user_id = (
+                    SELECT user_id FROM tw_forms WHERE tw_form_id = ? LIMIT 1
+                )
+                LIMIT 1
+            )
+    
+            UNION ALL
+    
+            SELECT 
+                c.chairman_id AS id, 
+                c.tw_form_id, 
+                NULL AS panelist_firstname, 
+                NULL AS panelist_lastname, 
+                acc.firstname AS chairman_firstname, 
+                acc.lastname AS chairman_lastname, 
+                'chairman' AS role
+            FROM assigned_chairman c
+            LEFT JOIN ACCOUNTS acc ON c.user_id = acc.user_id
+            WHERE c.tw_form_id = (
+                SELECT twf5.tw_form_id 
+                FROM twform_5 twf5
+                JOIN tw_forms tf ON twf5.tw_form_id = tf.tw_form_id
+                WHERE tf.user_id = (
+                    SELECT user_id FROM tw_forms WHERE tw_form_id = ? LIMIT 1
+                )
+                LIMIT 1
+            )
         ";
         
         $stmt = $conn->prepare($query);
@@ -134,18 +168,23 @@ session_start();
             die("Database query failed: " . $conn->error);
         }
     
-        $stmt->bind_param("i", $tw_form_id);
+        $stmt->bind_param("ii", $tw_form_id, $tw_form_id);
         $stmt->execute();
         $result = $stmt->get_result();
     
         return $result->num_rows > 0 ? $result->fetch_all(MYSQLI_ASSOC) : [];
     }
+    
 
-    $tw_form_id = $_GET['tw_form_id']; 
+    $tw_form_id = $_GET['tw_form_id'] ?? null; 
     $twform_details = getTWFormDetails($tw_form_id); 
     $proponents = GetProponents($tw_form_id);   
     $manuscript = manuscript($tw_form_id);
-    $panelists = GetAssignedPanelist($tw_form_id);
+    if ($tw_form_id) {
+        $assigned_users = GetPanelistsAndChairmanFromTwForm5($tw_form_id);
+    } else {
+        die("Invalid TW Form ID");
+    }
 ?>
 
 
@@ -192,6 +231,8 @@ session_start();
                 <div><strong>Course:</strong> <?= ucwords(htmlspecialchars($twform_details['course_name']))?></div>
                 <div><strong>Institutional Research Agenda:</strong> <?= htmlspecialchars($twform_details['ir_agenda_name']) ?></div> 
                 <div><strong>College Research Agenda:</strong> <?= htmlspecialchars($twform_details['col_agenda_name']) ?></div> 
+                <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
+                <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
                 <div>
                     <?php if (!empty($twform_details['comments'])): ?>
                         <div>
@@ -217,17 +258,22 @@ session_start();
                     <?php endif; ?>
                 </div>  
                 <div>
-                    <strong>Panel of Examiners:</strong> 
-                    <?php if (!empty($panelists)): ?>
+                    <strong>Assigned Panelists and Chairman:</strong>
+                    <?php if (!empty($assigned_users)): ?>
                         <ul>
-                            <?php foreach ($panelists as $panelist): ?>
-                                <li><?= ucwords(htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname'])) ?></li>
+                            <?php foreach ($assigned_users as $user): ?>
+                                <li>
+                                    <?= ucwords(htmlspecialchars(
+                                        $user['role'] === 'panelist' 
+                                            ? $user['panelist_firstname'] . ' ' . $user['panelist_lastname'] 
+                                            : $user['chairman_firstname'] . ' ' . $user['chairman_lastname']
+                                    )) ?>
+                                    (<?= ucfirst($user['role']) ?>)
+                                </li>
                             <?php endforeach; ?>
-                            <li><?= ucwords(htmlspecialchars($twform_details['statistician'])) ?></li>
-                            <li><?= ucwords(htmlspecialchars($twform_details['editor'])) ?></li>
                         </ul>
                     <?php else: ?>
-                        <p>No panel of examiners assigned yet.</p>
+                        <p>No panelists or chairman assigned yet.</p>
                     <?php endif; ?>
                 </div>
                <div>
@@ -261,12 +307,10 @@ session_start();
                                 No manuscript available
                             <?php endif; ?>
                 </div>
-                <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
-                <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
                 
         </div>
         <div class="details-section">
-            <form action="update_twform6_compliance.php" method="POST">
+            <form action="update-twform6-compliance.php" method="POST">
                 <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']) ?>">
 
                 <div class="mb-3">
@@ -294,7 +338,7 @@ session_start();
                     foreach ($document_types as $doc) {
                         $isChecked = isset($existing_documents[$doc]) && $existing_documents[$doc] == 1;
                         echo '<div class="form-check">';
-                        echo '<input class="form-check-input" type="checkbox" name="documents[]" value="' . htmlspecialchars($doc) . '" ' . ($isChecked ? 'checked' : '') . '>';
+                        echo '<input class="form-check-input border border-2 border-dark" type="checkbox" name="documents[]" value="' . htmlspecialchars($doc) . '" ' . ($isChecked ? 'checked' : '') . '>';
                         echo '<label class="form-check-label">' . htmlspecialchars($doc) . '</label>';
                         echo '</div>';
                     }

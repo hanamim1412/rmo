@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 
 require '../config/connect.php';
 
-if (!isset($_POST['tw_form_id'], $_POST['status'], $_POST['form_type'])) {
+if (!isset($_POST['tw_form_id'], $_POST['status'], $_POST['form_type'], $_POST['update_status'])) {
     $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Invalid request. Missing required data.'];
     header("Location: tw-forms.php");
     exit();

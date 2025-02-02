@@ -40,7 +40,7 @@
 
                 <div class="table-responsive">
                     <div class="d-flex justify-content-end align-items-center" style="gap: 10px;">
-                        <a href="add-ins_agenda.php" class="btn btn-add-item btn-success">Add</a>
+                        <a href="add-ins_agenda.php" class="btn btn-add-item btn-success mb-1"><i class="fas fa-plus"></i></a>
                     </div>
                     <table id="items-table" class="table table-bordered table-sm display">
                         <thead class="thead-background">
@@ -56,8 +56,11 @@
                                     <td><?= htmlspecialchars($row['ir_agenda_name']) ?></td>
                                     <td><?= htmlspecialchars($row['sub_areas']) ?></td>
                                     <td class="d-flex justify-content-between align-items-center" style="gap: 5px;">
-                                        <a href="edit-ins_agenda.php?id=<?= $row['ir_agenda_id'] ?>" class="btn btn-warning btn-sm">Edit</a>
-                                        <button class="btn btn-danger btn-sm delete-btn" data-id="<?= $row['ir_agenda_id'] ?>">Delete</button>
+                                            <a href="edit-ins_agenda.php?ir_agenda_id=<?= $row['ir_agenda_id'] ?>" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
+                                            <form action="delete-ins_agenda.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this agenda?');" style="display: inline;">
+                                                <input type="hidden" name="ir_agenda_id" value="<?= htmlspecialchars($row['ir_agenda_id']) ?>">
+                                                <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
+                                            </form>
                                     </td>
                                 </tr>
                             <?php endwhile; ?>
@@ -67,8 +70,19 @@
 </section>
 
 <script>
-    $(document).ready(function () {
-    var table = $('#items-table').DataTable({
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                alert.classList.remove('show');
+                alert.classList.add('fade');
+                setTimeout(() => alert.remove(), 500); 
+            });
+        }, 5000);
+    });
+$(document).ready(function () {
+    $('#items-table').DataTable({
         scrollX: true,
         autoWidth: false,
         paging: true,
@@ -88,27 +102,6 @@
         }
     });
 });
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                alert.classList.remove('show');
-                alert.classList.add('fade');
-                setTimeout(() => alert.remove(), 500); 
-            });
-        }, 5000);
-
-        const deleteBtns = document.querySelectorAll('.delete-btn');
-        deleteBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const id = this.dataset.id;
-                
-                if (confirm('Are you sure you want to delete this agenda?')) {
-                    window.location.href = 'delete-ins_agenda.php?id=' + id;
-                }
-            });
-        });
-    });
 </script>
 
 <?php
@@ -138,4 +131,5 @@ include('rmo-master.php');
     background-color:rgb(56, 120, 193);
     color: white;
 }
+
 </style>

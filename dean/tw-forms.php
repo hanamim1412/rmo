@@ -26,7 +26,7 @@ if (!$result || mysqli_num_rows($result) === 0) {
 $dean_data = mysqli_fetch_assoc($result);
 $dean_department_id = $dean_data['department_id'];
 
-function getTWForms($dean_department_id) {
+function getTWForms($overall_status = null, $dean_department_id = null) {
     global $conn;
 
     $query = "
@@ -41,9 +41,9 @@ function getTWForms($dean_department_id) {
             tw.research_adviser_id AS adviser,
             tw.comments,
             tw.overall_status,
+            tw.attachment,
             tw.submission_date,
             tw.last_updated,
-            tw.attachment,
             u.firstname AS student_firstname, 
             u.lastname AS student_lastname,
             dep.department_name AS department_name,
@@ -55,15 +55,35 @@ function getTWForms($dean_department_id) {
         LEFT JOIN DEPARTMENTS dep ON tw.department_id = dep.department_id
         LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
         LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'research_adviser'
-        WHERE tw.department_id = ?  -- Filter by dean's department_id
-        ORDER BY tw.last_updated DESC
     ";
+    $whereClauses = [];
+    $params = [];
+    $types = '';
+
+    if ($overall_status) {
+        $whereClauses[] = "LOWER(tw.overall_status) = ?";
+        $params[] = strtolower($overall_status);
+        $types .= 's';
+    }
+    if ($dean_department_id) {
+        $whereClauses[] = "tw.department_id = ?";
+        $params[] = intval($dean_department_id);
+        $types .= 'i';
+    }
+    if (!empty($whereClauses)) {
+        $query .= " WHERE " . implode(" AND ", $whereClauses);
+    }
+    $query .= " ORDER BY tw.last_updated DESC";
 
     $stmt = mysqli_prepare($conn, $query);
     if (!$stmt) {
         die("Database Query Failed: " . mysqli_error($conn));
     }
-    mysqli_stmt_bind_param($stmt, "i", $dean_department_id);
+
+    if (!empty($params)) {
+        mysqli_stmt_bind_param($stmt, $types, ...$params);
+    }
+
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
 
@@ -71,24 +91,19 @@ function getTWForms($dean_department_id) {
         die("Database Query Failed: " . mysqli_error($conn));
     }
 
-    $requests = [
-        'pending' => [],
-        'approved' => [],
-        'rejected' => []
-    ];
-
+    $twform_details = [];
     while ($row = mysqli_fetch_assoc($result)) {
-        $status = strtolower($row['overall_status']); 
-        if (isset($requests[$status])) {
-            $requests[$status][] = $row;
-        }
+        $twform_details[] = $row;
     }
 
-    return $requests;
+    return $twform_details;
 }
 
-$tw_form_id = $_GET['tw_form_id'] ?? null;
-$twforms_by_status = getTWForms($dean_department_id);
+$overall_status = $_GET['overall_status'] ?? null;
+$twform_details = getTWForms($overall_status);
+
+$status = ($overall_status) ? ucfirst($overall_status) : 'All';
+
 ?>
 
 <section id="tw-forms" class="pt-4">
@@ -114,24 +129,22 @@ $twforms_by_status = getTWForms($dean_department_id);
             </div>
         <?php endif; ?>
 
-        <div class="tab-container">
-            <ul class="nav nav-tabs mb-3 d-flex justify-content-center justify-content-md-start">
-                <li class="nav-item">
-                    <a class="nav-link active" id="pendingTab" href="javascript:void(0);">Pending</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="approvedTab" href="javascript:void(0);">Approved</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="rejectedTab" href="javascript:void(0);">Rejected</a>
-                </li>
-            </ul>
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <select id="overall_status" name="overall_status" class="form-select">
+                    <option value="">Select Status</option>
+                    <option value="pending" <?= ($overall_status === 'pending') ? 'selected' : '' ?>>Pending</option>
+                    <option value="approved" <?= ($overall_status === 'approved') ? 'selected' : '' ?>>Approved</option>
+                    <option value="rejected" <?= ($overall_status === 'rejected') ? 'selected' : '' ?>>Rejected</option>
+                </select>
+            </div>
+                    
+            <div class="col-md-2">
+                <button id="apply-filters" class="btn btn-success btn-sm w-100">Apply Filters</button>
+            </div>
         </div>
-    
+
         <div class="row">
-            <?php foreach (['pending', 'approved', 'rejected'] as $status): ?>
-            <div id="<?= $status ?>Forms" class="form-section w-100" style="display: <?= $status === 'pending' ? 'block' : 'none'; ?>;">
-                <?php if (!empty($twforms_by_status[$status])): ?>
                 <div class="table-responsive">
                     <table id="items-table" class="table table-bordered table-sm display">
                         <thead class="thead-background">
@@ -142,14 +155,14 @@ $twforms_by_status = getTWForms($dean_department_id);
                                 <th>Course</th>
                                 <th>Submitted By</th>
                                 <th>Research Adviser</th>
-                                <th>attachment</th>
+                                <th>Attachment</th>
                                 <th>Status</th>
                                 <th>Date</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php $i = 1; foreach ($twforms_by_status[$status] as $form): ?>
+                            <?php $i = 1; foreach ($twform_details as $form): ?>
                                 <tr>
                                     <td><?= $i++; ?></td>
                                     <td><?= $form['form_type'] ?></td>
@@ -158,22 +171,21 @@ $twforms_by_status = getTWForms($dean_department_id);
                                     <td><?= $form['student_firstname'] . ' ' . $form['student_lastname'] ?></td> 
                                     <td><?= $form['adviser_firstname'] . ' ' . $form['adviser_lastname'] ?></td> 
                                     <td>
-                                        <?php if (!empty($twform_details['attachment'])): ?>
+                                        <?php if (!empty($form['attachment'])): ?>
+
                                             <?php 
-                                                $filePath = "../uploads/documents/" . htmlspecialchars($twform_details['attachment']);
+                                                $filePath = "../uploads/documents/" . htmlspecialchars($form['attachment']);
                                                 $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
                                             ?>
                                             
                                             <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
-                                                <a href="<?= $filePath ?>" target="_blank">
-                                                    <img src="<?= $filePath ?>" alt="Attachment" class="img-fluid" style="max-width: 150px; max-height: 150px;">
-                                                </a>
+                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-success">View Attachment (<?= strtoupper($fileExtension) ?>)</a>
                                             <?php else: ?>
-                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">View/Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-success">View Attachment (<?= strtoupper($fileExtension) ?>)</a>
                                             <?php endif; ?>
 
                                         <?php else: ?>
-                                            <span>No attachment available.</span>
+                                            <span class="badge badge-danger badge-sm">No attachment available.</span>
                                         <?php endif; ?>
                                     </td>
                                     <td><?= ucfirst($form['overall_status']) ?></td>
@@ -215,11 +227,7 @@ $twforms_by_status = getTWForms($dean_department_id);
                         </tbody>
                     </table>
                 </div>
-                    <?php else: ?>
-                    <p class="text-center text-muted">No <?= ucfirst($status) ?> forms available.</p>
-                <?php endif; ?>
             </div>
-        <?php endforeach; ?>
         <div id="loadingOverlay" class="d-none">
             <div id="loadingSpinnerContainer" class="spinner-border" role="status">
                 <span class="sr-only">Loading...</span>
@@ -239,40 +247,40 @@ $(document).ready(function () {
     });
 });
 
-        function showTab(tabId, contentId) {
-            document.querySelectorAll('.form-section').forEach(section => {
-                section.style.display = 'none';
-            });
-            document.querySelectorAll('.nav-link').forEach(tab => {
-                tab.classList.remove('active');
-            });
-
-            const contentElement = document.getElementById(contentId);
-            const tabElement = document.getElementById(tabId);
-
-            if (contentElement && tabElement) {
-                contentElement.style.display = 'block';
-                tabElement.classList.add('active');
-            } else {
-                console.error(`Element(s) not found: ${contentId} or ${tabId}`);
+$(document).ready(function () {
+    var table = $('#items-table').DataTable({
+        scrollX: true,
+        autoWidth: false,
+        paging: true,
+        lengthChange: true,
+        searching: true,
+        ordering: true,
+        info: true,
+        pageLength: 5,
+        language: {
+            search: "Search:",
+            lengthMenu: "Show _MENU_ entries",
+            info: "Showing _START_ to _END_ of _TOTAL_ entries",
+            paginate: {
+                previous: "Prev",
+                next: "Next"
             }
         }
+    });
 
+    $('#apply-filters').click(function () {
+        var overall_status = $('#overall_status').val();
 
-        document.getElementById('pendingTab').addEventListener('click', function () {
-            showTab('pendingTab', 'pendingForms');
-        });
-        document.getElementById('approvedTab').addEventListener('click', function () {
-            showTab('approvedTab', 'approvedForms');
-        });
-        document.getElementById('rejectedTab').addEventListener('click', function () {
-            showTab('rejectedTab', 'rejectedForms');
-        });
+        var url = window.location.href.split('?')[0] +"&overall_status=" + overall_status;
+        window.location.href = url;
+    });
 
-
-        showTab('pendingTab', 'pendingForms');
-        
-        document.addEventListener('DOMContentLoaded', () => {
+    $('#overall_status').on('change', function () {
+        const value = $(this).val().toLowerCase();
+        table.column(7).search(this.value).draw();
+    });
+});
+document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             const alerts = document.querySelectorAll('.alert');
             alerts.forEach(alert => {
@@ -282,31 +290,6 @@ $(document).ready(function () {
             });
         }, 5000);
     });
-
-$(document).ready(function () {
-    $('.table.table-bordered').each(function () {
-        $(this).DataTable({
-            scrollX: true,
-            autoWidth: false,
-            paging: true,
-            lengthChange: true,
-            searching: true,
-            ordering: true,
-            info: true,
-            pageLength: 5,
-            language: {
-                search: "Search:",
-                lengthMenu: "Show _MENU_ entries",
-                info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                paginate: {
-                    previous: "Prev",
-                    next: "Next"
-                }
-            }
-        }).columns.adjust();
-    });
-});
-
 </script>
 
 <?php

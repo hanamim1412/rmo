@@ -44,6 +44,7 @@ function getTWForms($dean_department_id, $twform_type = null, $overall_status = 
             tw.overall_status,
             tw.submission_date,
             tw.last_updated,
+            tw.attachment,
             YEAR(tw.last_updated) AS last_updated_year,
             u.firstname AS student_firstname, 
             u.lastname AS student_lastname,
@@ -57,7 +58,7 @@ function getTWForms($dean_department_id, $twform_type = null, $overall_status = 
         LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
         LEFT JOIN institutional_research_agenda ira ON tw.ir_agenda_id = ira.ir_agenda_id
         LEFT JOIN college_research_agenda col_agenda ON tw.col_agenda_id = col_agenda.agenda_id
-        LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'panelist'
+        LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'research_adviser'
         WHERE tw.department_id = ? ";
 
     if ($twform_type) {
@@ -188,6 +189,7 @@ $status = ($twform_type || $overall_status || $school_year) ? ucfirst($overall_s
                     <th>College Research Agenda</th>
                     <th>Submitted By</th>
                     <th>Research Adviser</th>
+                    <th>Attachment</th>
                     <th>Status</th>
                     <th>Date</th>
                     <th>Action</th>
@@ -204,6 +206,24 @@ $status = ($twform_type || $overall_status || $school_year) ? ucfirst($overall_s
                         <td><?= $form['col_agenda'] ?></td>
                         <td><?= $form['student_firstname'] . ' ' . $form['student_lastname'] ?></td> 
                         <td><?= $form['adviser_firstname'] . ' ' . $form['adviser_lastname'] ?></td> 
+                        <td>
+                                        <?php if (!empty($form['attachment'])): ?>
+
+                                            <?php 
+                                                $filePath = "../uploads/documents/" . htmlspecialchars($form['attachment']);
+                                                $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                                            ?>
+                                            
+                                            <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-success">View Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                                            <?php else: ?>
+                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-success">View Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                                            <?php endif; ?>
+
+                                        <?php else: ?>
+                                            <span class="badge badge-danger badge-sm">No attachment available.</span>
+                                        <?php endif; ?>
+                                    </td>
                         <td><?= ucfirst($form['overall_status']) ?></td>
                         <td><?= $form['last_updated_year'] ?></td>
                         <td>
@@ -294,15 +314,15 @@ $(document).ready(function () {
     });
 
     $('#overall_status').on('change', function () {
-        table.column(8).search(this.value).draw();
+        table.column(9).search(this.value).draw();
     });
     $('#school_year').on('change', function () {
         
         var selectedYear = this.value;
         if (selectedYear) {
-            table.column(9).search(selectedYear.split('-')[0]).draw(); 
+            table.column(10).search(selectedYear.split('-')[0]).draw(); 
         } else {
-            table.column(9).search('').draw();
+            table.column(10).search('').draw();
         }
     });
 });

@@ -132,7 +132,8 @@ $ir_agendas = getInstitutionalAgenda();
                 </div>
                 <div class="form-group col-md-4">
                     <label>Adviser</label>
-                    <input type="text" class="form-control" id="adviser" name="adviser" placeholder="Type adviser name..." required>
+                        <input type="text" class="form-control" id="adviser" name="adviser" placeholder="Type adviser name..." required>
+                         <input type="hidden" class="form-control" id="adviser_id" name="adviser_id" required>
                     <div id="adviser-suggestions" class="autocomplete-suggestions"></div>
                 </div>
             </div>
@@ -161,7 +162,7 @@ $ir_agendas = getInstitutionalAgenda();
                 </div>
                 <div id="attachment" class="form-group col-md-4">
                     <label for="attachment"> Attach scanned TW form 2 </label>
-                    <input type="file" name="attachment" id="document" required>
+                    <input type="file" name="attachment" id="document" class="form-control" required>
                 </div>
             </div>
             <div id="proponents-container">
@@ -183,7 +184,7 @@ $ir_agendas = getInstitutionalAgenda();
                          <input type="date" name="receipt_date[]" class="form-control"required>   
                     </div>
                 </div>
-                <button type="button" class="btn btn-success btn-sm add-proponent">Add</button>
+                <button type="button" class="btn btn-success btn-sm add-proponent m-1"><i class="fas fa-plus"></i></button>
             </div>
 
             <div id="titles-container">
@@ -237,6 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const proponentsContainer = document.getElementById('proponents-container');
 
     const adviserInput = document.getElementById('adviser');
+    const adviserIdInput = document.getElementById('adviser_id');
     const adviserSuggestions = document.getElementById('adviser-suggestions');
 
     adviserInput.addEventListener('input', function() {
@@ -254,12 +256,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             suggestionItem.textContent = adviser.firstname + ' ' + adviser.lastname;
                             suggestionItem.addEventListener('click', function() {
                                 adviserInput.value = adviser.firstname + ' ' + adviser.lastname; 
+                                adviserIdInput.value = adviser.user_id;
                                 adviserSuggestions.innerHTML = '';
                             });
                             adviserSuggestions.appendChild(suggestionItem);
                         });
                     } else {
-                        adviserSuggestions.innerHTML = '<div>No advisers found</div>';
+                        adviserSuggestions.innerHTML = '<div class="p-2">No advisers found</div>';
                     }
                 })
                 .catch(error => {
@@ -291,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <input type="date" name="receipt_date[]" class="form-control" required>   
             </div>
             <div class="form-group col-md-2">
-                <button type="button" class="btn btn-danger btn-sm remove-proponent">Remove</button>
+                <button type="button" class="btn btn-danger btn-sm remove-proponent m-1"><i class="fas fa-trash"></i></button>
             </div>
         `;
 
@@ -330,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <input type="date" name="receipt_date[]" class="form-control" required>   
             </div>
         </div>
-        <button type="button" class="btn btn-success btn-sm add-proponent">Add</button>
+        <button type="button" class="btn btn-success btn-sm add-proponent m-1"><i class="fas fa-plus"></i></button>
     `;
 
         attachAddProponentListener();
@@ -411,5 +414,22 @@ document.addEventListener('DOMContentLoaded', () => {
     width: 5rem;
     height: 5rem;
     color: #007bff; 
+}
+.autocomplete-suggestions {
+    position: absolute;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: white;
+    max-height: 150px;
+    overflow-y: auto;
+    width: 90%;
+    z-index: 1000;
+}
+.autocomplete-item {
+    padding: 10px;
+    cursor: pointer;
+}
+.autocomplete-item:hover {
+    background: #f0f0f0;
 }
 </style>

@@ -14,43 +14,32 @@ if (!isset($_GET['tw_form_id']) || !is_numeric($_GET['tw_form_id'])) {
     die("Error: Invalid or missing tw_form_id.");
 }
 
-$tw_form_id = (int) $_GET['tw_form_id'];
 
-function getTWFormDetails($id) {
+function getTWFormDetails($tw_form_id) {
     global $conn;
     $query = "
         SELECT 
-            tw.tw_form_id,
-            tw.form_type,
-            tw.ir_agenda_id,
-            tw.col_agenda_id,
-            tw.department_id,
-            tw.course_id,
-            tw.research_adviser_id,
-            tw.overall_status,
-            tw.comments,
-            tw.submission_date,
-            tw.last_updated,
-            ira.ir_agenda_name,
-            col_agenda.agenda_name AS college_agenda_name,
-            dep.department_name,
-            cou.course_name,
-            u.firstname AS adviser_firstname,
-            u.lastname AS adviser_lastname
+            tw.tw_form_id, tw.form_type, tw.ir_agenda_id, tw.col_agenda_id, 
+            tw.department_id, tw.course_id, tw.research_adviser_id, 
+            tw.overall_status, tw.comments, tw.submission_date, tw.last_updated,
+            ira.ir_agenda_name, col_agenda.agenda_name AS college_agenda_name,
+            dep.department_name, cou.course_name, 
+            COALESCE(u.firstname, 'Not Assigned') AS adviser_firstname,
+            COALESCE(u.lastname, '') AS adviser_lastname
         FROM TW_FORMS tw
         LEFT JOIN institutional_research_agenda ira ON tw.ir_agenda_id = ira.ir_agenda_id
         LEFT JOIN college_research_agenda col_agenda ON tw.col_agenda_id = col_agenda.agenda_id
         LEFT JOIN DEPARTMENTS dep ON tw.department_id = dep.department_id
         LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
-        LEFT JOIN ACCOUNTS u ON tw.research_adviser_id = u.user_id
-        WHERE tw.tw_form_id = ?
-    ";
+        LEFT JOIN ACCOUNTS u ON tw.research_adviser_id = u.user_id AND u.user_type = 'research_adviser'
+        WHERE tw.tw_form_id = ?";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("i", $id);
+    $stmt->bind_param("i", $tw_form_id);
     $stmt->execute();
     $result = $stmt->get_result();
     return $result->fetch_assoc();
 }
+
 
     function getTWForm1Details($tw_form_id) {
         global $conn;
@@ -124,33 +113,63 @@ function GetAssignedPanelist($tw_form_id) {
             acc.firstname AS panelist_firstname,
             acc.lastname AS panelist_lastname
         FROM assigned_panelists panelist
-        LEFT JOIN TW_FORMS tw ON panelist.tw_form_id = tw.tw_form_id
-        LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id
+        LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id AND acc.user_type = 'panelist'
         WHERE panelist.tw_form_id = ?
     ";
+    
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("i", $tw_form_id);  
+    if (!$stmt) {
+        die("Database query failed: " . $conn->error);
+    }
+
+    $stmt->bind_param("i", $tw_form_id);
     $stmt->execute();
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $result = $stmt->get_result();
+
+    return $result->num_rows > 0 ? $result->fetch_all(MYSQLI_ASSOC) : [];
 }
+function GetAssignedChairman($tw_form_id) {
+    global $conn;
+    $query = "
+        SELECT
+            cm.chairman_id,
+            cm.tw_form_id,
+            acc.firstname AS cm_firstname,
+            acc.lastname AS cm_lastname
+        FROM assigned_chairman cm
+        LEFT JOIN ACCOUNTS acc ON cm.user_id = acc.user_id
+        WHERE cm.tw_form_id = ?
+        LIMIT 1";  
+    
+    $stmt = $conn->prepare($query);
+    if (!$stmt) {
+        die("Database query failed: " . $conn->error);
+    }
 
+    $stmt->bind_param("i", $tw_form_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-$tw_form = getTWFormDetails($tw_form_id);
-$twform1_details = getTWForm1Details($tw_form_id);  
-$proponents = GetProponents($tw_form_id);  
-$titles = GetTitles($tw_form_id);  
-$panelists = GetAssignedPanelist($tw_form_id);
-
-if (!$tw_form) {
-    die("Error: Form details not found.");
+    return $result->fetch_assoc(); 
 }
 
 $pdf = new TCPDF();
 $pdf->SetCreator(PDF_CREATOR);
-$pdf->SetAuthor($tw_form['adviser_firstname'] . ' ' . $tw_form['adviser_lastname']);
+$pdf->SetAuthor(($tw_form['adviser_firstname'] ?? 'Unknown') . ' ' . ($tw_form['adviser_lastname'] ?? ''));
 $pdf->SetTitle('TW Form 1 Details');
 $pdf->SetHeaderData('', 0, 'Research Management Office', date('Y-m-d'), array(0,0,0), array(0,0,0));
 
+$tw_form_id = (int)$_GET['tw_form_id'];
+$tw_form = getTWFormDetails($tw_form_id);
+$twform1_details = getTWForm1Details($tw_form_id);  
+$proponents = GetProponents($tw_form_id);  
+$titles = GetTitles($tw_form_id);  
+$panelists = GetAssignedPanelist($tw_form_id);  
+$chairman = GetAssignedChairman($tw_form_id);  
+
+if (!$tw_form) {
+    die("Error: Form details not found.");
+}
 $pdf->AddPage('L');
 
 $html = '<h3 style="text-align: center;">TW Form 1 Details</h3>';
@@ -179,19 +198,17 @@ $html .= '<td><strong>Overall Status:</strong> ' . htmlspecialchars($tw_form['ov
 $html .= '</tr>';
 $html .= '<tr>';
 $html .= '<td><strong>Comments:</strong> ' . htmlspecialchars($tw_form['comments']) . '</td>';
-$html .= '<td><strong>Assigned Panelists:</strong> ';
-if (count($panelists) > 0) {
-    $panelistNames = [];
-    foreach ($panelists as $panelist) {
-        $panelistNames[] = htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname']);
-    }
+$html .= '<tr><td><strong>Assigned Panelists:</strong></td><td>';
+if (!empty($panelists)) {
+    $panelistNames = array_map(function ($panelist) {
+        return htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname']);
+    }, $panelists);
     $html .= implode(', ', $panelistNames);
 } else {
     $html .= 'No assigned panelists yet';
 }
+$html .= '</td></tr>';
 
-$html .= '</td>';
-$html .= '</tr>';
 $html .= '<tr>';
 $html .= '<td><strong>Proponents: </strong>';
     

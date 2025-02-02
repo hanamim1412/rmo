@@ -8,8 +8,8 @@
     include('../config/connect.php');
     include('../messages.php');
     
-    if (isset($_GET['id'])) {
-        $id = $_GET['id'];
+    if (isset($_GET['ir_agenda_id'])) {
+        $id = $_GET['ir_agenda_id'];
         $query = "DELETE FROM institutional_research_agenda WHERE ir_agenda_id = ?";
         $stmt = mysqli_prepare($conn, $query);
         mysqli_stmt_bind_param($stmt, 'i', $id);

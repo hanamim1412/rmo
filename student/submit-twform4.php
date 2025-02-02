@@ -7,12 +7,12 @@ include '../messages.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    $required_fields = ['department_id', 'course_id', 'adviser_id', 'ir_agenda_id', 'col_agenda_id', 'thesis_title', 'defense_date', 'defense_time', 'defense_place'];
+    $required_fields = ['department_id', 'course_id', 'adviser_id', 'ir_agenda_id', 'col_agenda_id', 'thesis_title'];
 
     foreach ($required_fields as $field) {
         if (empty($_POST[$field])) {
             $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "Please fill in all required fields."];
-            header("Location: twform_2.php");
+            header("Location: twform_4.php");
             exit();
         }
     }
@@ -25,10 +25,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ir_agenda_id = (int) $_POST['ir_agenda_id'];
     $col_agenda_id = (int) $_POST['col_agenda_id'];
     $thesis_title = $_POST['thesis_title'];
-    $defense_date = $_POST['defense_date'];
-    $defense_time = $_POST['defense_time'];
-    $defense_place = $_POST['defense_place'];
     $files = $_FILES['receipt_img'];
+    $upload_dir = "../uploads/documents/"; 
+
+    if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] == UPLOAD_ERR_OK) {
+        $file_name = basename($_FILES['attachment']['name']);
+        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+    
+        $allowed_types = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx'];
+        if (!in_array($file_ext, $allowed_types)) {
+            $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "Invalid file type. Allowed: JPG, PNG, PDF, DOC, DOCX."];
+            header("Location: twform_4.php");
+            exit();
+        }
+        $new_file_name = "twform4_" . time() . "_" . uniqid() . "." . $file_ext;
+        $target_file = $upload_dir . $new_file_name;
+    
+        if (move_uploaded_file($_FILES['attachment']['tmp_name'], $target_file)) {
+            $file_path = $new_file_name; 
+        } else {
+            $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "File upload failed. Please try again."];
+            header("Location: twform_4.php");
+            exit();
+        }
+    } else {
+        $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "No file uploaded or upload error occurred."];
+        header("Location: twform_4.php");
+        exit();
+    }
 
     mysqli_begin_transaction($conn);
     try {
@@ -41,20 +65,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ir_agenda_id, 
             col_agenda_id, 
             research_adviser_id, 
+            attachment,
             overall_status, 
             submission_date, 
             last_updated
         ) 
-                VALUES ('twform_4', ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())";
+                VALUES ('twform_4', ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())";
         $stmt = mysqli_prepare($conn, $query);
         mysqli_stmt_bind_param($stmt, 
-        'iiiiii', 
+        'iiiiiis', 
                 $user_id, 
                 $department_id, 
                     $course_id, 
                     $ir_agenda_id, 
                     $col_agenda_id, 
-                    $adviser_id
+                    $adviser_id,
+                    $file_path
                 );
             
         
@@ -62,10 +88,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $tw_form_id = mysqli_insert_id($conn);
         
-        $twform4_query = "INSERT INTO twform_4 (tw_form_id, thesis_title, Defense_date, time, place, date_submitted, last_updated) 
-                          VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
+        $twform4_query = "INSERT INTO twform_4 (tw_form_id, thesis_title, date_submitted, last_updated) 
+                          VALUES (?, ?, NOW(), NOW())";
                 $twform4_stmt = mysqli_prepare($conn, $twform4_query);
-                mysqli_stmt_bind_param($twform4_stmt, 'issss', $tw_form_id, $thesis_title, $defense_date, $defense_time, $defense_place);
+                mysqli_stmt_bind_param($twform4_stmt, 'is', $tw_form_id, $thesis_title);
                 mysqli_stmt_execute($twform4_stmt);
 
         foreach ($_POST['student_firstnames'] as $index => $firstname) {

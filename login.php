@@ -31,7 +31,7 @@ if (isset($_SESSION['user_id'])) {
         header("Location: dean/tw-forms.php");
         exit();
     } elseif ($user_type == 'rmo_staff') {
-        header("Location: rmo_staff/reports.php");
+        header("Location: rmo_staff/tw_forms.php");
         exit();
     } elseif ($user_type == 'panelist') {
         header("Location: panelist/tw-forms.php");
@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     header("Location: dean/tw-forms.php");
                     exit();
                 } elseif ($user['user_type'] == 'rmo_staff') {
-                    header("Location: rmo_staff/reports.php");
+                    header("Location: rmo_staff/tw-forms.php");
                     exit();
                 } elseif ($user['user_type'] == 'panelist') {
                     header("Location: panelist/tw-forms.php");

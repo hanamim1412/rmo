@@ -26,7 +26,7 @@ $user = $result->fetch_assoc();
 $user_type = $user['user_type'];
 $is_dean = ($user_type === 'dean');
 $is_panelist = ($user_type === 'panelist');
-$is_advisor = ($user_type === 'subject_advisor');
+$is_advisor = ($user_type === 'chairman');
 
 function getTWFormDetails($id) {
     global $conn;
@@ -88,7 +88,6 @@ function getTWForm3Details($tw_form_id) {
     $stmt->execute();
     return $stmt->get_result();
 }
-
 function GetAssignedPanelist($tw_form_id) {
     global $conn;
     $query = "
@@ -98,14 +97,44 @@ function GetAssignedPanelist($tw_form_id) {
             acc.firstname AS panelist_firstname,
             acc.lastname AS panelist_lastname
         FROM assigned_panelists panelist
-        LEFT JOIN TW_FORMS tw ON panelist.tw_form_id = tw.tw_form_id
-        LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id
+        LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id AND acc.user_type = 'panelist'
         WHERE panelist.tw_form_id = ?
     ";
+    
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("i", $tw_form_id);  
+    if (!$stmt) {
+        die("Database query failed: " . $conn->error);
+    }
+
+    $stmt->bind_param("i", $tw_form_id);
     $stmt->execute();
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $result = $stmt->get_result();
+
+    return $result->num_rows > 0 ? $result->fetch_all(MYSQLI_ASSOC) : [];
+}
+function GetAssignedChairman($tw_form_id) {
+    global $conn;
+    $query = "
+        SELECT
+            cm.chairman_id,
+            cm.tw_form_id,
+            acc.firstname AS cm_firstname,
+            acc.lastname AS cm_lastname
+        FROM assigned_chairman cm
+        LEFT JOIN ACCOUNTS acc ON cm.user_id = acc.user_id
+        WHERE cm.tw_form_id = ?
+        LIMIT 1";  
+    
+    $stmt = $conn->prepare($query);
+    if (!$stmt) {
+        die("Database query failed: " . $conn->error);
+    }
+
+    $stmt->bind_param("i", $tw_form_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    return $result->fetch_assoc(); 
 }
 
 function getEvalCriteria($tw_form_id, $evaluator_id = null) {
@@ -155,6 +184,27 @@ function getEvalCriteria($tw_form_id, $evaluator_id = null) {
 
     return $eval_criteria;
 }
+function getCollegeDean($tw_form_id) {
+    global $conn;
+    $query = "
+        SELECT acc.firstname, acc.lastname 
+        FROM ACCOUNTS acc
+        JOIN TW_FORMS tw ON acc.department_id = tw.department_id
+        WHERE acc.user_type = 'dean' AND tw.tw_form_id = ?
+        LIMIT 1";
+    
+    $stmt = $conn->prepare($query);
+    if (!$stmt) {
+        die("Database query failed: " . $conn->error);
+    }
+
+    $stmt->bind_param("i", $tw_form_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    return $result->fetch_assoc();  
+}
+
 $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
 $pdf->SetCreator(PDF_CREATOR);
 $pdf->SetAuthor('Research Management Office');
@@ -167,7 +217,8 @@ $pdf->AddPage();
 
 $twform = getTWFormDetails($tw_form_id);
 $twform3_details = getTWForm3Details($tw_form_id);
-$panelists = GetAssignedPanelist($tw_form_id); 
+$panelists = GetAssignedPanelist($tw_form_id);  
+$chairman = GetAssignedChairman($tw_form_id);  
 $eval_criteria_list = getEvalCriteria($tw_form_id, $is_panelist ? $user_id : null);
 
 $html = '<h3 style="text-align: center;">TW Form 3 Details</h3>';
@@ -181,16 +232,24 @@ $html .= '<tr><td><strong>Department:</strong></td><td>' . htmlspecialchars($twf
 $html .= '<tr><td><strong>Course:</strong></td><td>' . htmlspecialchars($twform['course_name']) . '</td></tr>';
 $html .= '<tr><td><strong>Research Adviser:</strong></td><td>' . htmlspecialchars($twform['adviser_firstname'] . ' ' . $twform['adviser_lastname']) . '</td></tr>';
 $html .= '<tr><td><strong>Assigned Panelists:</strong></td><td>';
-    if (count($panelists) > 0) {
-        $panelistNames = [];
-        foreach ($panelists as $panelist) {
-            $panelistNames[] = htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname']);
-        }
-        $html .= implode(', ', $panelistNames);
-    } else {
-        $html .= 'No assigned panelists yet';
-    }
-    $html .= '</td></tr>';
+if (!empty($panelists)) {
+    $panelistNames = array_map(function ($panelist) {
+        return htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname']);
+    }, $panelists);
+    $html .= implode(', ', $panelistNames);
+} else {
+    $html .= 'No assigned panelists yet';
+}
+$html .= '</td></tr>';
+
+$html .= '<tr><td><strong>Assigned Chairman:</strong></td><td>';
+if (!empty($chairman)) {
+    $html .= htmlspecialchars($chairman['cm_firstname'] . ' ' . $chairman['cm_lastname']);
+} else {
+    $html .= 'No assigned chairman yet';
+}
+$html .= '</td></tr>';
+
 $html .= '<tr><td><strong>Status:</strong></td><td>' . htmlspecialchars($twform['overall_status']) . '</td></tr>';
 $html .= '<tr><td><strong>Comments:</strong></td><td>' . htmlspecialchars($twform['comments']) . '</td></tr>';
 $html .= '<tr><td><strong>Submission Date:</strong></td><td>' . date("Y-m-d", strtotime($twform['submission_date'])) . '</td></tr>';
@@ -257,6 +316,30 @@ if ($eval_criteria_list) {
 }
 
 $pdf->writeHTML($html, true, false, true, false, '');
+
+// insert footer here for signature for involved persons 
+$dean = getCollegeDean($tw_form_id);
+$dean_name = $dean ? htmlspecialchars($dean['firstname'] . ' ' . $dean['lastname']) : '_________________________';
+
+
+$footer_html = '<div style="margin-top: 50px; text-align: center;">
+    <table style="width: 100%; text-align: center;">
+        <tr>
+            <td style="width: 50%; border-top: 1px solid #000; padding-top: 10px;">
+                <strong>Approved By:</strong><br><br><u>' . $dean_name . '</u><br>College Dean
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" style="padding-top: 20px;">
+                <strong>Noted By:</strong><br><br>
+                <u>ANICETO B. NAVAL</u><br>Director, Research<br><br>
+                <u>RITZCEN A. DURANGO, PhD EL</u><br>Vice President, Academic Affairs
+            </td>
+        </tr>
+    </table>
+</div>';
+
+$pdf->writeHTML($footer_html);
 
 $action = isset($_GET['action']) ? $_GET['action'] : 'I';
 

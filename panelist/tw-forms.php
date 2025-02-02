@@ -31,6 +31,7 @@
                 tw.overall_status,
                 tw.submission_date,
                 tw.last_updated,
+                tw.attachment,
                 u.firstname AS student_firstname, 
                 u.lastname AS student_lastname,
                 dep.department_name AS department_name,
@@ -41,7 +42,7 @@
             LEFT JOIN ACCOUNTS u ON tw.user_id = u.user_id
             LEFT JOIN DEPARTMENTS dep ON tw.department_id = dep.department_id
             LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
-            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'panelist'
+            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'research_adviser'
             INNER JOIN assigned_panelists ap ON tw.tw_form_id = ap.tw_form_id
             WHERE ap.user_id = ? AND tw.form_type IN ('twform_3', 'twform_5')
             ORDER BY tw.last_updated DESC
@@ -133,6 +134,7 @@
                                 <th>Course</th>
                                 <th>Submitted By</th>
                                 <th>Research Adviser</th>
+                                <th>Attachment</th>
                                 <th>Status</th>
                                 <th>Date</th>
                                 <th>Action</th>
@@ -147,6 +149,24 @@
                                     <td><?= $form['course_name'] ?></td> 
                                     <td><?= $form['student_firstname'] . ' ' . $form['student_lastname'] ?></td> 
                                     <td><?= $form['adviser_firstname'] . ' ' . $form['adviser_lastname'] ?></td> 
+                                    <td>
+                                        <?php if (!empty($form['attachment'])): ?>
+
+                                            <?php 
+                                                $filePath = "../uploads/documents/" . htmlspecialchars($form['attachment']);
+                                                $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                                            ?>
+                                            
+                                            <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-success">View Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                                            <?php else: ?>
+                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-success">View Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                                            <?php endif; ?>
+
+                                        <?php else: ?>
+                                            <span class="badge badge-danger badge-sm">No attachment available.</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= ucfirst($form['overall_status']) ?></td>
                                     <td><?= $form['submission_date'] ?></td>
                                     <td>

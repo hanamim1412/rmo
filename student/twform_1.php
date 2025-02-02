@@ -99,7 +99,7 @@ $ir_agendas = getInstitutionalAgenda();
                 </a>
     
     <div class="container">
-        <form id="twform1" method="POST" action="submit-twform1.php" class="form-container">
+        <form id="twform1" method="POST" action="submit-twform1.php" class="form-container" enctype="multipart/form-data">
 
         <?php if (!empty($messages)): ?>
                 <?php foreach ($messages as $message): ?>
@@ -135,7 +135,8 @@ $ir_agendas = getInstitutionalAgenda();
                 </div>
                 <div class="form-group col-md-4">
                     <label>Adviser</label>
-                    <input type="text" class="form-control" id="adviser" name="adviser" placeholder="Type adviser name..." required>
+                        <input type="text" class="form-control" id="adviser" name="adviser" placeholder="Type adviser name..." required>
+                         <input type="hidden" class="form-control" id="adviser_id" name="adviser_id" required>
                     <div id="adviser-suggestions" class="autocomplete-suggestions"></div>
                 </div>
             </div>
@@ -170,7 +171,7 @@ $ir_agendas = getInstitutionalAgenda();
                     </div>
                     <div id="attachment" class="form-group col-md-4">
                         <label for="attachment"> Attach scanned TW form 1 </label>
-                        <input type="file" name="attachment" id="document" required>
+                        <input type="file" name="attachment" id="attachment" class="form-control" required>
                     </div>
             </div>
                                 
@@ -184,7 +185,7 @@ $ir_agendas = getInstitutionalAgenda();
                         <input type="text" name="student_lastnames[]" class="form-control mb-1 proponent" placeholder="Enter lastname" required>
                     </div>
                 </div>
-                <button type="button" class="btn btn-success btn-sm add-proponent">Add</button>
+                <button type="button" class="btn btn-success btn-sm add-proponent m-1"><i class="fas fa-plus"></i></button>
             </div>
 
             <div id="titles-container">
@@ -192,7 +193,7 @@ $ir_agendas = getInstitutionalAgenda();
                 <div class="form-group">
                     <textarea name="proposed_titles[]" class="form-control mb-1" rows="2" placeholder="Enter proposed title" required></textarea>
                     <textarea name="rationales[]" class="form-control mb-1" rows="6" placeholder="Enter rationale" required></textarea>
-                    <button type="button" class="btn btn-success add-title">Add</button>
+                    <button type="button" class="btn btn-success btn-sm add-title m-1"><i class="fas fa-plus"></i></button>
                 </div>
             </div>
 
@@ -240,6 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const titlesContainer = document.getElementById('titles-container');
 
     const adviserInput = document.getElementById('adviser');
+    const adviserIdInput = document.getElementById('adviser_id');
     const adviserSuggestions = document.getElementById('adviser-suggestions');
 
     adviserInput.addEventListener('input', function() {
@@ -257,12 +259,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             suggestionItem.textContent = adviser.firstname + ' ' + adviser.lastname;
                             suggestionItem.addEventListener('click', function() {
                                 adviserInput.value = adviser.firstname + ' ' + adviser.lastname; 
+                                adviserIdInput.value = adviser.user_id;
                                 adviserSuggestions.innerHTML = '';
                             });
                             adviserSuggestions.appendChild(suggestionItem);
                         });
                     } else {
-                        adviserSuggestions.innerHTML = '<div>No advisers found</div>';
+                        adviserSuggestions.innerHTML = '<div class="p-2">No advisers found</div>';
                     }
                 })
                 .catch(error => {
@@ -285,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <input type="text" name="student_lastnames[]" class="form-control proponent" placeholder="Enter lastname" required>
         </div>
         <div class="form-group col-md-2">
-            <button type="button" class="btn btn-danger btn-sm remove-proponent">Remove</button>
+            <button type="button" class="btn btn-danger btn-sm remove-proponent m-1"><i class="fas fa-trash"></i></button>
         </div>
     `;
         proponentsContainer.appendChild(newProponent);
@@ -333,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
         newTitle.innerHTML = `
             <textarea name="proposed_titles[]" class="form-control mb-1" rows="2" placeholder="Enter proposed title" required></textarea>
             <textarea name="rationales[]" class="form-control mb-1" rows="6" placeholder="Enter rationale" required></textarea>
-            <button type="button" class="btn btn-danger btn-sm remove-title">Remove</button>
+            <button type="button" class="btn btn-danger btn-sm remove-title m-1"><i class="fas fa-trash"></i></button>
         `;
         titlesContainer.appendChild(newTitle);
 
@@ -364,14 +367,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="form-group col-md-4">
                     <input type="text" name="student_lastnames[]" class="form-control proponent" placeholder="Enter lastname" required>
                 </div>
-                <button type="button" class="btn btn-success btn-sm add-proponent">Add</button>
+                <button type="button" class="btn btn-success btn-sm add-proponent m-1"><i class="fas fa-plus"></i></button>
             </div>
         `;
         titlesContainer.innerHTML = `
             <div class="form-group">
                 <textarea name="proposed_titles[]" class="form-control mb-1" rows="2" placeholder="Enter proposed title" required></textarea>
                 <textarea name="rationales[]" class="form-control mb-1" rows="6" placeholder="Enter rationale" required></textarea>
-                <button type="button" class="btn btn-success add-title">Add</button>
+                <button type="button" class="btn btn-success btn-sm add-title m-1"><i class="fas fa-plus"></i></button>
             </div>
         `;
     });
@@ -424,13 +427,15 @@ document.addEventListener('DOMContentLoaded', () => {
 .autocomplete-suggestions {
     position: absolute;
     border: 1px solid #ddd;
+    border-radius: 10px;
     background: white;
     max-height: 150px;
     overflow-y: auto;
+    width: 90%;
     z-index: 1000;
 }
 .autocomplete-item {
-    padding: 8px;
+    padding: 10px;
     cursor: pointer;
 }
 .autocomplete-item:hover {

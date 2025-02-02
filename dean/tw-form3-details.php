@@ -46,6 +46,7 @@ session_start();
                 tw.overall_status,
                 tw.submission_date,
                 tw.last_updated,
+                tw.attachment,
                 u.firstname AS firstname, 
                 u.lastname AS lastname,
                 dep.department_name AS department_name,
@@ -127,6 +128,30 @@ session_start();
     
         return $result->num_rows > 0 ? $result->fetch_all(MYSQLI_ASSOC) : [];
     }
+    function GetAssignedChairman($tw_form_id) {
+        global $conn;
+        $query = "
+            SELECT
+                cm.chairman_id,
+                cm.tw_form_id,
+                acc.firstname AS cm_firstname,
+                acc.lastname AS cm_lastname
+            FROM assigned_chairman cm
+            LEFT JOIN ACCOUNTS acc ON cm.user_id = acc.user_id
+            WHERE cm.tw_form_id = ?
+            LIMIT 1";  
+        
+        $stmt = $conn->prepare($query);
+        if (!$stmt) {
+            die("Database query failed: " . $conn->error);
+        }
+    
+        $stmt->bind_param("i", $tw_form_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    
+        return $result->fetch_assoc(); 
+    }
     function manuscript($tw_form_id) {
         global $conn;
         $query = "SELECT * FROM ATTACHMENTS WHERE tw_form_id = ?";
@@ -171,6 +196,7 @@ session_start();
     $twform3_details = getTWForm3Details($tw_form_id);  
     $manuscript = manuscript($tw_form_id);
     $panelists = GetAssignedPanelist($tw_form_id);  
+    $chairman = GetAssignedChairman($tw_form_id); 
     $eval_criteria = getEvalCriteria($tw_form_id);
 ?>
 <section id="twform-3-details" class="pt-4">
@@ -234,6 +260,28 @@ session_start();
                 <div><strong>Course:</strong> <?= ucwords(htmlspecialchars($twform_details['course_name']))?></div>
                 <div><strong>Institutional Research Agenda:</strong> <?= htmlspecialchars($twform_details['ir_agenda_name']) ?></div> 
                 <div><strong>College Research Agenda:</strong> <?= htmlspecialchars($twform_details['col_agenda_name']) ?></div> 
+                <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
+                <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
+                <div>
+                    <strong>Attachment</strong><br>
+
+                    <?php if (!empty($twform_details['attachment'])): ?>
+                        <?php 
+                            $filePath = "../uploads/documents/" . htmlspecialchars($twform_details['attachment']);
+                            $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                        ?>
+                        
+                        <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                            
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php else: ?>
+                            <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-primary">Download Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                        <?php endif; ?>
+
+                    <?php else: ?>
+                        <span>No attachment available.</span>
+                    <?php endif; ?>
+                </div>
                 <div>
                     <?php if (!empty($twform_details['comments'])): ?>
                         <div>
@@ -258,29 +306,33 @@ session_start();
                         </form>
                     <?php endif; ?>
                 </div>  
-                <div><strong>Assigned Panelists:</strong> 
-                        <?php if (!empty($panelists)): ?>
-                            <ul>
-                                <?php foreach ($panelists as $panelist): ?>
-                                    <li><?= ucwords(htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname'])) ?></li>
-                                <?php endforeach; ?>
+                <div>
+                    <?php if (!empty($panelists)): ?>
+                        <ul>
+                                <strong>Assigned Panel examiners:</strong> 
+                                    <?php foreach ($panelists as $panelist): ?>
+                                        <li><?= ucwords(htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname'])) ?></li>
+                                    <?php endforeach; ?>
+                                    <strong>Assigned Chairman:</strong> 
+                                        <li><?= ucwords(htmlspecialchars($chairman['cm_firstname'] . ' ' . $chairman['cm_lastname'])) ?></li>
+                                    
                             </ul>
+                                <a href="edit-assign-panelists.php?tw_form_id=<?= $twform_details['tw_form_id'] ?>" 
+                                    class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> Edit
+                                </a>    
                         <?php else: ?>
-                            <p>No panelists found for this form.</p>
+                            <p>No panelists and chairman found for this form.</p>
                             <a href="assign-panelists.php?tw_form_id=<?= $twform_details['tw_form_id'] ?>" 
-                                class="btn btn-primary btn-sm">Assign Panelists
+                                class="btn btn-primary btn-sm">Assign Panel examiners
                             </a>
                         <?php endif; ?>
                 </div>
-                <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
-                <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
-                
         </div>
 
             <div class="table-container mt-4">
                 <form action="tw3_update_defense_schedule.php" method="POST">
-                <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']) ?>">
-                <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
+                    <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']) ?>">
+                    <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
                                                
                         <table id="items-table" class="table table-bordered display">
                             <thead class="thead-background">
@@ -298,9 +350,9 @@ session_start();
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($twform3_details as $index => $twform3): ?>
+                            <?php $i = 1; foreach ($twform3_details as $twform3): ?>
                                     <tr>
-                                        <td><?= $index + 1 ?></td>
+                                        <td><?= $i++; ?></td>
                                         <td><?= ucwords(htmlspecialchars($twform3['firstname'])).' '.ucwords(htmlspecialchars($twform3['lastname'])) ?></td>
                                         <td><?= htmlspecialchars($twform3['thesis_title']) ?></td>
                                         <td>
@@ -315,17 +367,17 @@ session_start();
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <input type="date" name="defense_date[]" value="<?= htmlspecialchars($twform3['defense_date'] ?? ''); ?>" class="form-control form-control-sm" required>
+                                            <input type="date" name="defense_date" value="<?= htmlspecialchars($twform3['defense_date'] ?? ''); ?>" class="form-control form-control-sm" required>
                                         </td>
 
                                         <td>
-                                            <input type="time" name="time[]" value="<?= htmlspecialchars($twform3['time'] ?? ''); ?>" class="form-control form-control-sm" required>
+                                            <input type="time" name="time" value="<?= htmlspecialchars($twform3['time'] ?? ''); ?>" class="form-control form-control-sm" required>
                                         </td>
 
                                         <td>
-                                            <textarea name="place[]" class="form-control form-control-sm" rows="1" required><?= htmlspecialchars($twform3['place'] ?? ''); ?></textarea>
+                                            <textarea name="place" class="form-control form-control-sm w-auto" rows="2" required><?= htmlspecialchars($twform3['place'] ?? 'No assigned place yet'); ?></textarea>
                                         </td>
-                                        <td><?= htmlspecialchars($twform3['last_updated']) ?></td>
+                                        <td class="w-100"><?= htmlspecialchars($twform3['last_updated']) ?></td>
                                         <td><?php 
                                             $form_status = isset($twform3['status']) ? strtoupper(htmlspecialchars($twform3['status'])) : 'UNKNOWN';
                                             $badgeClass = '';
@@ -343,18 +395,19 @@ session_start();
                                             <form action="update_form3_status.php" method="POST" style="display: inline;">
                                                 <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($twform_details['tw_form_id']) ?>">
                                                 <input type="hidden" name="form_type" value="<?= htmlspecialchars($twform_details['form_type'] ?? ''); ?>">
+                                                
                                                 <select name="status" id="status" class="form-select form-select-sm" style="width: auto;" required>
                                                     <option value="pending" <?= $twform3['status'] === 'pending' ? 'selected' : '' ?>>Pending</option>
                                                     <option value="graded" <?= $twform3['status'] === 'graded' ? 'selected' : '' ?>>Graded</option>
                                                 </select>
-                                                <button type="submit" class="btn btn-success btn-sm">Update Status</button>
+                                                <button type="submit" name="update_status" class="btn btn-success btn-sm m-1">Update Status</button>
                                             </form>
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <?php if ($eval_criteria): ?>
                                                     <a href="eval_details.php?tw_form_id=<?= htmlspecialchars($twform_details['tw_form_id']) ?>"
                                                         class="btn btn-warning btn-sm mt-2">View Scores</a>
                                                 <?php else: ?>
-                                                    <span class="badge btn-danger btn-sm"> No Scores Available </span>
+                                                    <span class="badge btn-danger btn-sm mt-2"> No Scores Available </span>
                                                 <?php endif; ?>
                                             </div>
                                         </td>
@@ -362,8 +415,8 @@ session_start();
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
-                        <div class="text-center mt-3">
-                        <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                    <div class="text-right mt-3">
+                        <button type="submit" name="update_schedule" class="btn btn-success btn-sm">Update Schedule</button>
                     </div>
                 </form>
             </div>

@@ -13,10 +13,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ir_agenda_id = (int) $_POST['ir_agenda_id'];
     $col_agenda_id = (int) $_POST['col_agenda_id'];
     $thesis_title = $_POST['thesis_title'];
-    $defense_date = $_POST['defense_date'];
-    $defense_time = $_POST['defense_time'];
-    $defense_place = $_POST['defense_place'];
     $files = $_FILES['receipt_img'];
+
+$query = "SELECT attachment FROM tw_forms WHERE tw_form_id = ?";
+$stmt = $conn->prepare($query);
+$stmt->bind_param('i', $tw_form_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$row = $result->fetch_assoc();
+$current_attachment = $row['attachment'];
+
+$upload_dir = "../uploads/documents/";
+$attachment = $current_attachment; 
+
+if (isset($_FILES['new_attachment']) && $_FILES['new_attachment']['error'] == UPLOAD_ERR_OK) {
+    $file_name = basename($_FILES['new_attachment']['name']);
+    $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+    $allowed_types = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx'];
+    if (!in_array($file_ext, $allowed_types)) {
+        $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "Invalid file type. Allowed: JPG, PNG, PDF, DOC, DOCX."];
+        header("Location: twform4-edit.php?tw_form_id=$tw_form_id");
+        exit();
+    }
+
+    $new_file_name = "twform4_" . time() . "_" . uniqid() . "." . $file_ext;
+    $target_file = $upload_dir . $new_file_name;
+
+    if (move_uploaded_file($_FILES['new_attachment']['tmp_name'], $target_file)) {
+        
+        if (!empty($current_attachment) && file_exists($upload_dir . $current_attachment)) {
+            unlink($upload_dir . $current_attachment);
+        }
+        $attachment = $new_file_name; 
+    } else {
+        $_SESSION['messages'][] = ['tags' => 'danger', 'content' => "File upload failed. Please try again."];
+        header("Location: twform4-edit.php?tw_form_id=$tw_form_id");
+        exit();
+    }
+}
 
     mysqli_begin_transaction($conn);
     try {
@@ -29,23 +64,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ir_agenda_id = ?, 
                 col_agenda_id = ?, 
                 research_adviser_id = ?, 
+                attachment = ?,
                 last_updated = NOW()
             WHERE tw_form_id = ?";
         $stmt = mysqli_prepare($conn, $update_twforms_query);
-        mysqli_stmt_bind_param($stmt, 'iiiiii', $department_id, $course_id, $ir_agenda_id, $col_agenda_id, $adviser_id, $tw_form_id);
+        mysqli_stmt_bind_param($stmt, 'iiiiisi', $department_id, $course_id, $ir_agenda_id, $col_agenda_id, $adviser_id, $attachment, $tw_form_id);
         mysqli_stmt_execute($stmt);
 
         $update_twform4_query = "
             UPDATE twform_4
             SET 
                 thesis_title = ?, 
-                Defense_date = ?, 
-                time = ?, 
-                place = ?, 
                 last_updated = NOW()
             WHERE tw_form_id = ?";
         $stmt = mysqli_prepare($conn, $update_twform4_query);
-        mysqli_stmt_bind_param($stmt, 'ssssi', $thesis_title, $defense_date, $defense_time, $defense_place, $tw_form_id);
+        mysqli_stmt_bind_param($stmt, 'si', $thesis_title, $tw_form_id);
         mysqli_stmt_execute($stmt);
 
         if (isset($_POST['student_firstnames'])) {

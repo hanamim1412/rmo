@@ -32,6 +32,7 @@
                 tw.comments,
                 tw.overall_status,
                 tw.submission_date,
+                tw.attachment,
                 YEAR(tw.last_updated) AS last_updated_year,
                 u.firstname AS student_firstname, 
                 u.lastname AS student_lastname,
@@ -116,13 +117,12 @@ $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
 
 <section id="tw-forms" class="pt-4">
     <div class="header-container pt-4">
-        <h4 class="text-left">Reports</h4>
-    </div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <a href="javascript:history.back()" class="btn btn-link" style="font-size: 1rem; text-decoration: none; color: black;">
-            <i class="fas fa-arrow-left" style="margin-right: 10px; font-size: 1.2rem;"></i>
-            Back
-        </a>
+        <div class="d-flex justify-content-start align-items-center mb-4">
+            <a href="javascript:history.back()" class="btn btn-link" style="font-size: 1rem; text-decoration: none; color: black;">
+                <i class="fas fa-arrow-left" style="margin-right: 10px; font-size: 1.2rem;"></i>
+            </a>
+            <h4 class="text-left">Reports</h4>
+        </div>
     </div>
 
     <?php if (!empty($messages)): ?>

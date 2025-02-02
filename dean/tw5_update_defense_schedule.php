@@ -1,4 +1,5 @@
 <?php
+// tw5_update_defense_schedule.php
 session_start();
 require '../config/connect.php';
 include '../messages.php';
@@ -8,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-if (!isset($_POST['tw_form_id'], $_POST['form_type'], $_POST['defense_date'], $_POST['time'], $_POST['place'])) {
+if (!isset($_POST['tw_form_id'], $_POST['form_type'], $_POST['defense_date'], $_POST['time'], $_POST['place'], $_POST['update_schedule'])) {
     $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Invalid form submission.'];
     header("Location: tw-forms.php");
     exit();
@@ -17,9 +18,9 @@ if (!isset($_POST['tw_form_id'], $_POST['form_type'], $_POST['defense_date'], $_
 $tw_form_id = mysqli_real_escape_string($conn, $_POST['tw_form_id']);
 $form_type = mysqli_real_escape_string($conn, $_POST['form_type']);
 
-$defense_dates = $_POST['defense_date'];
-$times = $_POST['time'];
-$places = $_POST['place'];
+$defense_date = mysqli_real_escape_string($conn, $_POST['defense_date']);
+$time = mysqli_real_escape_string($conn, $_POST['time']);
+$place = mysqli_real_escape_string($conn, $_POST['place']);
 
 switch ($form_type) {
     case 'twform_1':
