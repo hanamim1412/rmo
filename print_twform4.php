@@ -137,68 +137,106 @@ if (!$twform || !$twform4_details) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TW Form 4 Details</title>
     <style>
-        /* General Styles */
-        body {
+                body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #fff;
-            color: #000;
+            margin: 20px;
         }
-
-        /* Page Size for Printing */
         @page {
             size: letter portrait;
             margin: 1cm;
         }
-
         .container {
-            width: 100%;
-            max-width: 21.59cm; /* Letter width */
-            margin: 0 auto;
-            padding: 1cm;
+            width: 90%;
+            margin: auto;
         }
-
         h3, h4 {
             text-align: center;
-            margin: 0.5em 0;
         }
-
         table {
-            width: 90%;
+            width: 100%;
             border-collapse: collapse;
-            margin-bottom: 1em;
+            margin-bottom: 20px;
         }
-
         th, td {
-            border: 1px solid #000;
+            border: 1px solid black;
             padding: 8px;
             text-align: left;
+            vertical-align: middle;
         }
-
         th {
             background-color: #f2f2f2;
         }
-
-        .print-button {
-            display: none; /* Hide the print button when printing */
-        }
-
         @media print {
-            .print-button {
-                display: none;
+            body {
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact;
             }
+        }
+        .border-table {
+            border: 1px solid #000;
+            padding: 10px;
+        }
+        .header-logo {
+            max-height: 80px;
+        }
+        .small-text {
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body onload="window.print(); setTimeout(() => window.close(), 1000);">
-    <div class="container">
-        <h3>TW Form 4 Details</h3>
+<!-- HEADER -->
+<div class="border-table mb-4" style="display: table; width: 97%; table-layout: fixed;">
+        <div style="display: table-row;">
+            <!-- Logo Column -->
+            <div style="display: table-cell; width: 15%; text-align: center; vertical-align: middle;">
+                <img src="uploads/dept_logo/rmo-logo.jpg" alt="Logo" class="header-logo">
+            </div>
+            
+            <!-- School Name Column -->
+            <div style="display: table-cell; width: 60%; text-align: center; vertical-align: middle; border-left: 1px solid black;">
+                <h5 style="margin: 0;">ST. MICHAEL'S COLLEGE OF ILIGAN, INC</h5>
+            </div>
 
-        <!-- General Information -->
-        <h4>General Information</h4>
+            <!-- Document Code Column -->
+            <div style="display: table-cell; width: 25%; text-align: left; border-left: 1px solid black; vertical-align: top; font-size: 0.9rem; padding-left: 5px;">
+                Document Code: SMCII.RMO.<?php echo strtoupper(str_replace(' ', '', $twform['form_type'])); ?>.<?php echo htmlspecialchars($twform['tw_form_id']); ?><br>
+                REV: 0<br>
+                Effective Date: <?php echo date('Y-m-d', strtotime($twform['submission_date'])); ?>
+            </div>
+        </div>
+
+        <div style="display: table-row;">
+            <!-- Empty left cell -->
+            <div style="display: table-cell; width: 15%;"></div>
+
+            <!-- Form Type Title Center -->
+            <div style="display: table-cell; width: 60%; text-align: center; border-top: 1px solid #000; border-left: 1px solid #000; border-right: 1px solid #000;">
+                <h6 style="margin: 5px 0;"><?php echo htmlspecialchars($twform['form_type']); ?></h6>
+                <?php
+                    $formDescriptions = [
+                        'twform_1' => 'Approval of Thesis Title',
+                        'twform_2' => 'Approval for Proposal Hearing',
+                        'twform_3' => 'Rating for Proposal Hearing',
+                        'twform_4' => 'Approval for Oral Examination',
+                        'twform_5' => 'Rating for Final Defense',
+                        'twform_6' => 'Approval for Binding',
+                    ];
+
+                    $formType = $twform['form_type'] ?? '';
+                    if (isset($formDescriptions[$formType])) {
+                        echo '<p class="small-text" style="margin: 0;">' . htmlspecialchars($formDescriptions[$formType]) . '</p>';
+                    }
+                    ?>
+            </div>
+
+            <!-- Empty right cell -->
+            <div style="display: table-cell; width: 25%;"></div>
+        </div>
+    </div>
         <table>
-            <tr><th colspan="2" style="background-color: #f2f2f2; text-align: center;">General Information</th></tr>
+            <tr><th colspan="2" style="text-align: center;">General Information</th></tr>
             <tr><td><strong>Research Agenda (IR):</strong></td><td><?php echo htmlspecialchars($twform['ir_agenda_name']); ?></td></tr>
             <tr><td><strong>Research Agenda (College):</strong></td><td><?php echo htmlspecialchars($twform['college_agenda_name']); ?></td></tr>
             <tr><td><strong>Department:</strong></td><td><?php echo htmlspecialchars($twform['department_name']); ?></td></tr>
@@ -209,10 +247,8 @@ if (!$twform || !$twform4_details) {
             <tr><td><strong>Submission Date:</strong></td><td><?php echo date("Y-m-d", strtotime($twform['submission_date'])); ?></td></tr>
         </table>
 
-        <!-- Form Information -->
-        <h4>Form Information</h4>
         <table>
-            <tr><th colspan="2" style="background-color: #f2f2f2; text-align: center;">Form Information</th></tr>
+            <tr><th colspan="2" style="text-align: center;">Form Information</th></tr>
             <tr><td><strong>TW Form Type:</strong></td><td>TW Form 4: Approval of Oral Examination/Final Defense</td></tr>
             <tr><td><strong>Proponents:</strong></td><td>
                 <?php
@@ -231,24 +267,28 @@ if (!$twform || !$twform4_details) {
             <tr><td><strong>Time:</strong></td><td><?php echo date("g:i A", strtotime($twform4_details['time'])); ?></td></tr>
             <tr><td><strong>Venue:</strong></td><td><?php echo htmlspecialchars($twform4_details['place']); ?></td></tr>
         </table>
-        <div style="margin-top: 10px; text-align: center;">
-            <table style="width: 100%; text-align: center; border: none;">
-                <tr>
-                    <td style="width: 100%; padding-top: 10px; border: none;">
-                        <strong>Approved By:</strong><br><br><u><?php echo $dean_name; ?></u><br>College Dean
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="2" style="padding-top: 5px; border: none; justify-content: between;">
-                        <strong>Noted By:</strong><br><br>
-                        <div>
-                            <u>ANICETO B. NAVAL</u><br>Director, Research Management Office<br><br>
-                            <u>RITZCEN A. DURANGO, PhD.</u><br>Vice President, Academic Affairs
-                        </div>
-                    </td>
-                </tr>
-            </table>
+
+    <!-- APPROVED BY / NOTED BY -->
+    <div class="row text-center mt-5">
+            <div class="col-4">
+                <p><strong>Approved By:</strong></p>
+                <p><u class="text-center" style="text-transform: uppercase;"><?php echo $dean_name; ?></u><br>College Dean</p>
+            </div>
+            <p><strong>Noted By:</strong></p>
+            <div style="margin-top: 50px; width: 100%; text-align: center;">
+                <table style="width: 100%; border: none; margin-top: 20px;">
+                    <tr>
+                        <td style="width: 50%; text-align: center; vertical-align: top; border: none;">
+                            <u>STEPHANIE L. COLORADA, MAEd, TESOL</u><br>
+                            Coordinator, Research Management Office
+                        </td>
+                        <td style="width: 50%; text-align: center; vertical-align: top; border: none;">
+                            <u>RITZCEN A. DURANGO, Ph.D.</u><br>
+                            Vice President, Academic Affairs
+                        </td>
+                    </tr>
+                </table>
+            </div>
         </div>
-    </div>
 </body>
 </html>

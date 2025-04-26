@@ -227,73 +227,113 @@ if (!$twform || !$twform3_details) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TW Form 3 Details</title>
     <style>
-        /* General Styles */
-        body {
+       body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #fff;
-            color: #000;
+            margin: 20px;
         }
-
-        /* Page Size for Printing */
         @page {
             size: letter portrait;
             margin: 1cm;
         }
-
         .container {
-            width: 100%;
-            max-width: 21.59cm; /* Letter width */
-            margin: 0 auto;
-            padding: 1cm;
+            width: 90%;
+            margin: auto;
         }
-
         h3, h4 {
             text-align: center;
-            margin: 0.5em 0;
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 1em;
+            margin-bottom: 20px;
         }
-
         th, td {
-            border: 1px solid #000;
+            border: 1px solid black;
             padding: 8px;
             text-align: left;
+            vertical-align: middle;
         }
-
         th {
             background-color: #f2f2f2;
         }
 
-        .print-button {
-            display: none; /* Hide the print button when printing */
-        }
-
         @media print {
-            .print-button {
-                display: none;
+            body {
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact;
             }
+        }
+        .border-table {
+            border: 1px solid #000;
+            padding: 10px;
+        }
+        .header-logo {
+            max-height: 80px;
+        }
+        .small-text {
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body onload="window.print(); setTimeout(() => window.close(), 1000);">
-    <div class="container">
-        <h3>TW Form 3 Details</h3>
+     <!-- HEADER -->
+    <div class="border-table mb-4" style="display: table; width: 97%; table-layout: fixed;">
+        <div style="display: table-row;">
+            <!-- Logo Column -->
+            <div style="display: table-cell; width: 15%; text-align: center; vertical-align: middle;">
+                <img src="uploads/dept_logo/rmo-logo.jpg" alt="Logo" class="header-logo">
+            </div>
+            
+            <!-- School Name Column -->
+            <div style="display: table-cell; width: 60%; text-align: center; vertical-align: middle; border-left: 1px solid black;">
+                <h5 style="margin: 0;">ST. MICHAEL'S COLLEGE OF ILIGAN, INC</h5>
+            </div>
 
-        <!-- General Information -->
-        <h4>General Information</h4>
+            <!-- Document Code Column -->
+            <div style="display: table-cell; width: 25%; text-align: left; border-left: 1px solid black; vertical-align: top; font-size: 0.9rem; padding-left: 5px;">
+                Document Code: SMCII.RMO.<?php echo strtoupper(str_replace(' ', '', $twform['form_type'])); ?>.<?php echo htmlspecialchars($twform['tw_form_id']); ?><br>
+                REV: 0<br>
+                Effective Date: <?php echo date('Y-m-d', strtotime($twform['submission_date'])); ?>
+            </div>
+        </div>
+
+        <div style="display: table-row;">
+            <!-- Empty left cell -->
+            <div style="display: table-cell; width: 15%;"></div>
+
+            <!-- Form Type Title Center -->
+            <div style="display: table-cell; width: 60%; text-align: center; border-top: 1px solid #000; border-left: 1px solid #000; border-right: 1px solid #000;">
+                <h6 style="margin: 5px 0;"><?php echo htmlspecialchars($twform['form_type']); ?></h6>
+                <?php
+                    $formDescriptions = [
+                        'twform_1' => 'Approval of Thesis Title',
+                        'twform_2' => 'Approval for Proposal Hearing',
+                        'twform_3' => 'Rating for Proposal Hearing',
+                        'twform_4' => 'Approval for Oral Examination',
+                        'twform_5' => 'Rating for Final Defense',
+                        'twform_6' => 'Approval for Binding',
+                    ];
+
+                    $formType = $twform['form_type'] ?? '';
+                    if (isset($formDescriptions[$formType])) {
+                        echo '<p class="small-text" style="margin: 0;">' . htmlspecialchars($formDescriptions[$formType]) . '</p>';
+                    }
+                    ?>
+            </div>
+
+            <!-- Empty right cell -->
+            <div style="display: table-cell; width: 25%;"></div>
+        </div>
+    </div>
+    
         <table>
-            <tr><th colspan="2" style="background-color: #f2f2f2; text-align: center;">General Information</th></tr>
-            <tr><td><strong>Research Agenda (IR):</strong></td><td><?php echo htmlspecialchars($twform['ir_agenda_name']); ?></td></tr>
-            <tr><td><strong>Research Agenda (College):</strong></td><td><?php echo htmlspecialchars($twform['college_agenda_name']); ?></td></tr>
-            <tr><td><strong>Department:</strong></td><td><?php echo htmlspecialchars($twform['department_name']); ?></td></tr>
-            <tr><td><strong>Course:</strong></td><td><?php echo htmlspecialchars($twform['course_name']); ?></td></tr>
-            <tr><td><strong>Research Adviser:</strong></td><td><?php echo htmlspecialchars($twform['adviser_firstname'] . ' ' . $twform['adviser_lastname']); ?></td></tr>
+            <tr><th colspan="2" style="text-align: center;">General Information</th></tr>
+            <tr><td><strong>Research Agenda (IR):</strong></td><td><?= htmlspecialchars($twform['ir_agenda_name']); ?></td></tr>
+            <tr><td><strong>Research Agenda (College):</strong></td><td><?= htmlspecialchars($twform['college_agenda_name']); ?></td></tr>
+            <tr><td><strong>Department:</strong></td><td><?= htmlspecialchars($twform['department_name']); ?></td></tr>
+            <tr><td><strong>Course:</strong></td><td><?= htmlspecialchars($twform['course_name']); ?></td></tr>
+            <tr><td><strong>Research Adviser:</strong></td><td><?= htmlspecialchars($twform['adviser_firstname'] . ' ' . $twform['adviser_lastname']); ?></td></tr>
             <tr><td><strong>Assigned Panelists:</strong></td><td>
                 <?php
                 if (!empty($panelists)) {
@@ -315,89 +355,74 @@ if (!$twform || !$twform3_details) {
                 }
                 ?>
             </td></tr>
-            <tr><td><strong>Status:</strong></td><td><?php echo htmlspecialchars($twform['overall_status']); ?></td></tr>
-            <tr><td><strong>Comments:</strong></td><td><?php echo htmlspecialchars($twform['comments']); ?></td></tr>
-            <tr><td><strong>Submission Date:</strong></td><td><?php echo date("Y-m-d", strtotime($twform['submission_date'])); ?></td></tr>
+            <tr><td><strong>Status:</strong></td><td><?= htmlspecialchars($twform['overall_status']); ?></td></tr>
+            <tr><td><strong>Comments:</strong></td><td><?= htmlspecialchars($twform['comments']); ?></td></tr>
+            <tr><td><strong>Submission Date:</strong></td><td><?= date("Y-m-d", strtotime($twform['submission_date'])); ?></td></tr>
         </table>
-
-        <!-- Form Information -->
-        <h4>Form Information</h4>
         <table>
-            <tr><th colspan="2" style="background-color: #f2f2f2; text-align: center;">Form Information</th></tr>
-            <tr><td><strong>Student Name:</strong></td><td><?php echo htmlspecialchars($twform3_details['firstname'] . ' ' . $twform3_details['lastname']); ?></td></tr>
-            <tr><td><strong>Thesis Title:</strong></td><td><?php echo htmlspecialchars($twform3_details['thesis_title']); ?></td></tr>
-            <tr><td><strong>Defense Date:</strong></td><td><?php echo date("F j, Y", strtotime($twform3_details['defense_date'])); ?></td></tr>
-            <tr><td><strong>Time:</strong></td><td><?php echo date("g:i A", strtotime($twform3_details['time'])); ?></td></tr>
-            <tr><td><strong>Venue:</strong></td><td><?php echo htmlspecialchars($twform3_details['place']); ?></td></tr>
-            <tr><td><strong>Rating Status:</strong></td><td><?php echo htmlspecialchars($twform3_details['status']); ?></td></tr>
+            <tr><th colspan="2" style="text-align: center;">Form Information</th></tr>
+            <tr><td><strong>Student Name:</strong></td><td><?= htmlspecialchars($twform3_details['firstname'] . ' ' . $twform3_details['lastname']); ?></td></tr>
+            <tr><td><strong>Thesis Title:</strong></td><td><?= htmlspecialchars($twform3_details['thesis_title']); ?></td></tr>
+            <tr><td><strong>Defense Date:</strong></td><td><?= date("F j, Y", strtotime($twform3_details['defense_date'])); ?></td></tr>
+            <tr><td><strong>Time:</strong></td><td><?= date("g:i A", strtotime($twform3_details['time'])); ?></td></tr>
+            <tr><td><strong>Venue:</strong></td><td><?= htmlspecialchars($twform3_details['place']); ?></td></tr>
+            <tr><td><strong>Rating Status:</strong></td><td><?= htmlspecialchars($twform3_details['status']); ?></td></tr>
         </table>
-
-        <!-- Evaluation Criteria -->
-        <h4>Evaluation Criteria</h4>
         <?php if ($eval_criteria_list): ?>
             <?php foreach ($eval_criteria_list as $eval_criteria): ?>
                 <?php if ($is_dean || $is_advisor || ($is_panelist && $eval_criteria['evaluator_id'] == $user_id)): ?>
-                    <table border="1" cellpadding="4" cellspacing="0" style="width: 100%;">
+                    <table>
                         <thead>
-                            <tr><th colspan="2" class="text-center"><strong>Evaluation Criteria</strong></th><th class="text-center"><strong>Score</strong></th></tr>
+                            <tr>
+                                <th colspan="2" style="text-align: center;">Evaluation Criteria</th>
+                                <th style="text-align: center;">Score</th>
+                            </tr>
                         </thead>
                         <tbody>
-                            <tr><td colspan="2"><strong>Evaluator</strong></td><td><?php echo ucwords(htmlspecialchars($eval_criteria['eval_firstname'] . ' ' . $eval_criteria['eval_lastname'])); ?></td></tr>
-                            <tr><td rowspan="3" class="align-middle"><strong>Presentation of the Paper (50 pts.)</strong></td><td>Presentation (15 pts.)</td><td><?php echo htmlspecialchars($eval_criteria['presentation']); ?></td></tr>
-                            <tr><td>Content (25 pts.)</td><td><?php echo htmlspecialchars($eval_criteria['content']); ?></td></tr>
-                            <tr><td>Organization (10 pts.)</td><td><?php echo htmlspecialchars($eval_criteria['organization']); ?></td></tr>
-                            <tr><td colspan="2"><strong>Mastery of the Subject Matter (20 pts.)</strong></td><td><?php echo htmlspecialchars($eval_criteria['mastery']); ?></td></tr>
-                            <tr><td colspan="2"><strong>Ability to Respond to Questions (20 pts.)</strong></td><td><?php echo htmlspecialchars($eval_criteria['ability']); ?></td></tr>
-                            <tr><td colspan="2"><strong>Openness Towards the Given Suggestions (10 pts.)</strong></td><td><?php echo htmlspecialchars($eval_criteria['openness']); ?></td></tr>
-                            <tr><td colspan="2"><strong>Overall Rating (Sum of Scores)</strong></td><td><?php echo htmlspecialchars($eval_criteria['overall_rating']); ?></td></tr>
+                            <tr><td colspan="2"><strong>Evaluator</strong></td><td><?= ucwords(htmlspecialchars($eval_criteria['eval_firstname'] . ' ' . $eval_criteria['eval_lastname'])); ?></td></tr>
+                            <tr><td rowspan="3"><strong>Presentation of the Paper (50 pts.)</strong></td><td>Presentation (15 pts.)</td><td><?= htmlspecialchars($eval_criteria['presentation']); ?></td></tr>
+                            <tr><td>Content (25 pts.)</td><td><?= htmlspecialchars($eval_criteria['content']); ?></td></tr>
+                            <tr><td>Organization (10 pts.)</td><td><?= htmlspecialchars($eval_criteria['organization']); ?></td></tr>
+                            <tr><td colspan="2"><strong>Mastery of the Subject Matter (20 pts.)</strong></td><td><?= htmlspecialchars($eval_criteria['mastery']); ?></td></tr>
+                            <tr><td colspan="2"><strong>Ability to Respond to Questions (20 pts.)</strong></td><td><?= htmlspecialchars($eval_criteria['ability']); ?></td></tr>
+                            <tr><td colspan="2"><strong>Openness Towards Suggestions (10 pts.)</strong></td><td><?= htmlspecialchars($eval_criteria['openness']); ?></td></tr>
+                            <tr><td colspan="2"><strong>Overall Rating</strong></td><td><?= htmlspecialchars($eval_criteria['overall_rating']); ?></td></tr>
                             <?php
                             $percentage = htmlspecialchars($eval_criteria['percentage']);
                             $remarks = $eval_criteria['percentage'] < 75 ? "(Failed)" : "(Passed)";
                             ?>
-                            <tr><td colspan="2"><strong>Percentage</strong></td><td><?php echo $percentage . ' ' . $remarks; ?></td></tr>
-                            <tr><td colspan="2"><strong>Remarks</strong></td><td><?php echo htmlspecialchars($eval_criteria['remarks']); ?></td></tr>
+                            <tr><td colspan="2"><strong>Percentage</strong></td><td><?= $percentage . ' ' . $remarks; ?></td></tr>
+                            <tr><td colspan="2"><strong>Remarks</strong></td><td><?= htmlspecialchars($eval_criteria['remarks']); ?></td></tr>
                         </tbody>
                     </table>
                 <?php endif; ?>
             <?php endforeach; ?>
         <?php else: ?>
-            <p>No evaluation made for this form.</p>
+            <p style="text-align: center;">No evaluation made for this form.</p>
         <?php endif; ?>
 
-        <div style="margin-top: 50px; text-align: center;">
-            <table style="width: 100%; text-align: center;">
-                <tr>
-                    <td style="width: 50%; border-top: 1px solid #000; padding-top: 10px;">
-                        <strong>Approved By:</strong><br><br><u><?php echo $dean_name; ?></u><br>College Dean
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="2" style="padding-top: 20px;">
-                        <strong>Noted By:</strong><br><br>
-                        <u>ANICETO B. NAVAL</u><br>Director, Research<br><br>
-                        <u>RITZCEN A. DURANGO, PhD EL</u><br>Vice President, Academic Affairs
-                    </td>
-                </tr>
-            </table>
+      <!-- APPROVED BY / NOTED BY -->
+    <div class="row text-center mt-5">
+        <div class="col-4">
+            <p><strong>Approved By:</strong></p>
+            <p><u class="text-center" style="text-transform: uppercase;"><?php echo $dean_name; ?></u><br>College Dean</p>
         </div>
-        <div style="margin-top: 10px; text-align: center;">
-            <table style="width: 100%; text-align: center; border: none;">
+        <p><strong>Noted By:</strong></p>
+        <div style="margin-top: 50px; width: 100%; text-align: center;">
+            <table style="width: 100%; border: none; margin-top: 20px;">
                 <tr>
-                    <td style="width: 20%; padding-top: 10px; border: none;">
-                        <strong>Approved By:</strong><br><br><u><?php echo $dean_name; ?></u><br>College Dean
+                    <td style="width: 50%; text-align: center; vertical-align: top; border: none;">
+                        <u>STEPHANIE L. COLORADA, MAEd, TESOL</u><br>
+                        Coordinator, Research Management Office
                     </td>
-                </tr>
-                <tr>
-                    <td colspan="2" style="padding-top: 10px; border: none; justify-content: between;">
-                        <strong>Noted By:</strong><br><br>
-                        <div>
-                            <u>ANICETO B. NAVAL</u><br>Director, Research Management Office<br><br>
-                            <u>RITZCEN A. DURANGO, PhD.</u><br>Vice President, Academic Affairs
-                        </div>
+                    <td style="width: 50%; text-align: center; vertical-align: top; border: none;">
+                        <u>RITZCEN A. DURANGO, Ph.D.</u><br>
+                        Vice President, Academic Affairs
                     </td>
                 </tr>
             </table>
         </div>
     </div>
+
 </body>
 </html>
