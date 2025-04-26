@@ -230,38 +230,37 @@ $status = ($twform_type || $overall_status || $school_year) ? ucfirst($overall_s
                             <?php 
                                 switch ($form['form_type']) {
                                     case 'twform_1':
-                                        $pdfPage = 'generate_twform1_pdf.php';
+                                        $printPage = 'print_twform1.php';
                                         break;
                                     case 'twform_2':
-                                        $pdfPage = 'generate_twform2_pdf.php';
+                                        $printPage = 'print_twform2.php';
                                         break;
                                     case 'twform_3':
-                                        $pdfPage = 'generate_twform3_pdf.php';
+                                        $printPage = 'print_twform3.php';
                                         break;
                                     case 'twform_4':
-                                        $pdfPage = 'generate_twform4_pdf.php';
+                                        $printPage = 'print_twform4.php';
                                         break;
                                     case 'twform_5':
-                                        $pdfPage = 'generate_twform5_pdf.php';
+                                        $printPage = 'print_twform5.php';
                                         break;
                                     case 'twform_6':
-                                        $pdfPage = 'generate_twform6_pdf.php';
+                                        $printPage = 'print_twform6.php';
                                         break;
                                     default:
                                         $_SESSION['messages'][] = [
                                             'tags' => 'danger', 
                                             'content' => "Unknown form type encountered for Form ID: {$form['tw_form_id']}."
                                         ];
-                                        $pdfPage = '';  
+                                        $printPage = '';  
                                         break;
                                 }
                             ?>
                             <div class="d-flex justify-content-between align-items-center mb-1" style="gap: 5px">
-                                <?php if ($pdfPage): ?>
-                                    <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=I" class="btn btn-success btn-sm" target="_blank">Print</a>
-                                    <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=D" class="btn btn-primary btn-sm" target="_blank">Download</a>
+                                <?php if ($printPage): ?>
+                                    <a href="../<?= $printPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-success btn-sm"><i class="fa-solid fa-print"></i></a>
                                 <?php else: ?>
-                                    <span class="text-muted">PDF generation not available for this form type.</span>
+                                    <span class="text-muted">Print not available for this form type.</span>
                                 <?php endif; ?>
                             </div>
                         </td>

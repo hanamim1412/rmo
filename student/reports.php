@@ -45,7 +45,7 @@
             LEFT JOIN COURSES cou ON tw.course_id = cou.course_id
             LEFT JOIN institutional_research_agenda ira ON tw.ir_agenda_id = ira.ir_agenda_id
             LEFT JOIN college_research_agenda col_agenda ON tw.col_agenda_id = col_agenda.agenda_id
-            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'panelist'
+            LEFT JOIN ACCOUNTS advisor ON tw.research_adviser_id = advisor.user_id AND advisor.user_type = 'research_adviser'
             WHERE tw.user_id = ?";
         
         $params = [$currentUserId];
@@ -102,14 +102,13 @@ $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
 ?>
 
 <section id="tw-forms" class="pt-4">
-    <div class="header-container pt-4">
-        <h4 class="text-left">Reports</h4>
-    </div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-start align-items-center pt-4">
         <a href="javascript:history.back()" class="btn btn-link" style="font-size: 1rem; text-decoration: none; color: black;">
             <i class="fas fa-arrow-left" style="margin-right: 10px; font-size: 1.2rem;"></i>
-            Back
         </a>
+        <div class="header-container">
+            <h4 class="text-left">Reports</h4>
+        </div>
     </div>
 
     <?php if (!empty($messages)): ?>
@@ -125,106 +124,109 @@ $status = ($twform_type || $overall_status) ? ucfirst($overall_status) : 'All';
         </div>
     <?php endif; ?>
 
-    <div class="row mb-3">
-        <div class="col-md-3">
-            <select id="twform_type" class="form-select">
-                <option value="">Select Form Type</option>
-                <option value="twform_1">TW Form 1</option>
-                <option value="twform_2">TW Form 2</option>
-                <option value="twform_3">TW Form 3</option>
-                <option value="twform_4">TW Form 4</option>
-                <option value="twform_5">TW Form 5</option>
-            </select>
+    <div class="card">
+        <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <select id="twform_type" class="form-select">
+                            <option value="">Select Form Type</option>
+                            <option value="twform_1">TW Form 1</option>
+                            <option value="twform_2">TW Form 2</option>
+                            <option value="twform_3">TW Form 3</option>
+                            <option value="twform_4">TW Form 4</option>
+                            <option value="twform_5">TW Form 5</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="overall_status" class="form-select">
+                            <option value="">Select Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+
+
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <button id="apply-filters" class="btn btn-primary btn-sm">Apply Filters</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="items-table" class="table table-bordered table-sm display">
+                        <thead class="thead-background">
+                            <tr>
+                                <th>#</th>
+                                <th>Form Type</th>
+                                <th>College</th>
+                                <th>Course</th>
+                                <th>Institutional Research Agenda</th>
+                                <th>College Research Agenda</th>
+                                <th>Submitted By</th>
+                                <th>Research Adviser</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $i = 1; foreach ($twform_details as $form): ?>
+                                <tr>
+                                    <td><?= $i++; ?></td>
+                                    <td><?= $form['form_type'] ?></td>
+                                    <td><?= $form['department_name'] ?></td> 
+                                    <td><?= $form['course_name'] ?></td> 
+                                    <td><?= $form['ir_agenda'] ?></td> 
+                                    <td><?= $form['col_agenda'] ?></td>
+                                    <td><?= $form['student_firstname'] . ' ' . $form['student_lastname'] ?></td> 
+                                    <td><?= $form['adviser_firstname'] . ' ' . $form['adviser_lastname'] ?></td> 
+                                    <td><?= ucfirst($form['overall_status']) ?></td>
+                                    <td><?= $form['submission_date'] ?></td>
+                                    <td class="text-center">
+                                        <?php 
+                                            switch ($form['form_type']) {
+                                                case 'twform_1':
+                                                    $printPage = 'print_twform1.php';
+                                                    break;
+                                                case 'twform_2':
+                                                    $printPage = 'print_twform2.php';
+                                                    break;
+                                                case 'twform_3':
+                                                    $printPage = 'print_twform3.php';
+                                                    break;
+                                                case 'twform_4':
+                                                    $printPage = 'print_twform4.php';
+                                                    break;
+                                                case 'twform_5':
+                                                    $printPage = 'print_twform5.php';
+                                                    break;
+                                                case 'twform_6':
+                                                    $printPage = 'print_twform6.php';
+                                                    break;
+                                                default:
+                                                    $_SESSION['messages'][] = [
+                                                        'tags' => 'danger', 
+                                                        'content' => "Unknown form type encountered for Form ID: {$form['tw_form_id']}."
+                                                    ];
+                                                    $printPage = '';  
+                                                    break;
+                                            }
+                                        ?>
+                                        <div class="d-flex justify-content-between align-items-center mb-1" style="gap: 5px">
+                                            <?php if ($printPage): ?>
+                                                <a href="../<?= $printPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-success btn-sm"><i class="fa-solid fa-print"></i></a>
+                                            <?php else: ?>
+                                                <span class="text-muted">Print not available for this form type.</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+
+                        </tbody>
+                    </table>
+                </div>
         </div>
-        <div class="col-md-3">
-            <select id="overall_status" class="form-select">
-                <option value="">Select Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-            </select>
-        </div>
-
-
-    </div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <button id="apply-filters" class="btn btn-primary btn-sm">Apply Filters</button>
-    </div>
-
-    <div class="table-responsive">
-        <table id="items-table" class="table table-bordered table-sm display">
-            <thead class="thead-background">
-                <tr>
-                    <th>#</th>
-                    <th>Form Type</th>
-                    <th>College</th>
-                    <th>Course</th>
-                    <th>Institutional Research Agenda</th>
-                    <th>College Research Agenda</th>
-                    <th>Submitted By</th>
-                    <th>Research Adviser</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php $i = 1; foreach ($twform_details as $form): ?>
-                    <tr>
-                        <td><?= $i++; ?></td>
-                        <td><?= $form['form_type'] ?></td>
-                        <td><?= $form['department_name'] ?></td> 
-                        <td><?= $form['course_name'] ?></td> 
-                        <td><?= $form['ir_agenda'] ?></td> 
-                        <td><?= $form['col_agenda'] ?></td>
-                        <td><?= $form['student_firstname'] . ' ' . $form['student_lastname'] ?></td> 
-                        <td><?= $form['adviser_firstname'] . ' ' . $form['adviser_lastname'] ?></td> 
-                        <td><?= ucfirst($form['overall_status']) ?></td>
-                        <td><?= $form['submission_date'] ?></td>
-                        <td>
-                            <?php 
-                                switch ($form['form_type']) {
-                                    case 'twform_1':
-                                        $pdfPage = 'generate_twform1_pdf.php';
-                                        break;
-                                    case 'twform_2':
-                                        $pdfPage = 'generate_twform2_pdf.php';
-                                        break;
-                                    case 'twform_3':
-                                        $pdfPage = 'generate_twform3_pdf.php';
-                                        break;
-                                    case 'twform_4':
-                                        $pdfPage = 'generate_twform4_pdf.php';
-                                        break;
-                                    case 'twform_5':
-                                        $pdfPage = 'generate_twform5_pdf.php';
-                                        break;
-                                    case 'twform_6':
-                                        $pdfPage = 'generate_twform6_pdf.php';
-                                        break;
-                                    default:
-                                        $_SESSION['messages'][] = [
-                                            'tags' => 'danger', 
-                                            'content' => "Unknown form type encountered for Form ID: {$form['tw_form_id']}."
-                                        ];
-                                        $pdfPage = '';  
-                                        break;
-                                }
-                            ?>
-                            <div class="d-flex justify-content-between align-items-center mb-1" style="gap: 5px">
-                                <?php if ($pdfPage): ?>
-                                    <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=I" class="btn btn-success btn-sm" target="_blank">Print</a>
-                                    <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=D" class="btn btn-primary btn-sm" target="_blank">Download</a>
-                                <?php else: ?>
-                                    <span class="text-muted">PDF generation not available for this form type.</span>
-                                <?php endif; ?>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-
-            </tbody>
-        </table>
     </div>
 
 </section>

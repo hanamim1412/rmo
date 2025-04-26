@@ -42,6 +42,7 @@
                 tw.overall_status,
                 tw.submission_date,
                 tw.last_updated,
+                tw.attachment,
                 u.firstname AS student_firstname, 
                 u.lastname AS student_lastname,
                 dep.department_name AS department_name,
@@ -140,6 +141,7 @@
                                 <th>Course</th>
                                 <th>Submitted By</th>
                                 <th>Research Adviser</th>
+                                <th>Attachment</th>
                                 <th>Status</th>
                                 <th>Date</th>
                                 <th>Action</th>
@@ -154,6 +156,24 @@
                                     <td><?= $form['course_name'] ?></td> 
                                     <td><?= $form['student_firstname'] . ' ' . $form['student_lastname'] ?></td> 
                                     <td><?= $form['adviser_firstname'] . ' ' . $form['adviser_lastname'] ?></td> 
+                                    <td class="text-center">
+                                        <?php if (!empty($form['attachment'])): ?>
+
+                                            <?php 
+                                                $filePath = "../uploads/documents/" . htmlspecialchars($form['attachment']);
+                                                $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                                            ?>
+                                            
+                                            <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-lg btn-outline-success"><i class="fa-regular fa-image"></i></a>
+                                            <?php else: ?>
+                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-lg btn-outline-success"><i class="fa-regular fa-file"></i></a>
+                                            <?php endif; ?>
+
+                                        <?php else: ?>
+                                            <span class="badge badge-danger badge-sm">No attachment available.</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= ucfirst($form['overall_status']) ?></td>
                                     <td><?= $form['submission_date'] ?></td>
                                     <td>
@@ -175,7 +195,7 @@
                                         }
                                         ?>
                                         <div class="d-flex justify-content-between align-items-center mb-1" style="gap: 5px">
-                                            <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view">View</a>
+                                            <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view"><i class="fa-solid fa-circle-info"></i></a>
                                             
                                         </div>
                                     </td>

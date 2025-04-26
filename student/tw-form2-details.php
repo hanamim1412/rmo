@@ -265,8 +265,8 @@ session_start();
                 <?php endif; ?>
             <?php endforeach; ?>
         </div>
-
-            <div class="table-container mt-4">
+         <div class="card">
+            <div class="card-body">
                         <table id="items-table" class="table table-bordered display">
                             <thead class="thead-background">
                                 <tr>
@@ -303,6 +303,8 @@ session_start();
                             </tbody>
                         </table>
             </div>
+         </div>               
+            
          
 </section>
 

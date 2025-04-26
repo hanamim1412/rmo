@@ -315,11 +315,10 @@ session_start();
                 <div class="form-group">
                     <?php 
                     $documents = [
-                        "Certificate of Conformity Status",
+                        "Certificate of Conformity",
                         "Certificate of Data Gathering",
                         "Certificate of Similarity",
-                        "CV of Certification from Data Analyst",
-                        "Article Submitted to Repository"
+                        "Article Repository"
                     ];
 
                     $query = "SELECT document_name, is_checked FROM twform_6_compliance WHERE tw_form_id = ?";

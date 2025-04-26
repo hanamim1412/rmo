@@ -103,30 +103,7 @@ session_start();
             $stmt->execute();
             return $stmt->get_result();
     }
-    function GetAssignedPanelist($tw_form_id) {
-        global $conn;
-        $query = "
-            SELECT
-                panelist.assigned_panelist_id,
-                panelist.tw_form_id,
-                acc.firstname AS panelist_firstname,
-                acc.lastname AS panelist_lastname
-            FROM assigned_panelists panelist
-            LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id AND acc.user_type = 'panelist' AND acc.user_type = 'chairman'
-            WHERE panelist.tw_form_id = ?
-        ";
-        
-        $stmt = $conn->prepare($query);
-        if (!$stmt) {
-            die("Database query failed: " . $conn->error);
-        }
-    
-        $stmt->bind_param("i", $tw_form_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-    
-        return $result->num_rows > 0 ? $result->fetch_all(MYSQLI_ASSOC) : [];
-    }
+
     function manuscript($tw_form_id) {
         global $conn;
         $query = "SELECT * FROM ATTACHMENTS WHERE tw_form_id = ?";
@@ -166,12 +143,53 @@ session_start();
         
         return $eval_criteria;
     }
+    function GetAssignedPanelistsAndChairman($tw_form_id) {
+        global $conn;
+        $query = "
+            SELECT
+                panelist.assigned_panelist_id,
+                panelist.tw_form_id,
+                acc.firstname AS panelist_firstname,
+                acc.lastname AS panelist_lastname,
+                NULL AS chairman_firstname,
+                NULL AS chairman_lastname,
+                'panelist' AS role
+            FROM assigned_panelists panelist
+            LEFT JOIN ACCOUNTS acc ON panelist.user_id = acc.user_id AND acc.user_type = 'panelist'
+            WHERE panelist.tw_form_id = ?
+            
+            UNION ALL
+            
+            SELECT
+                chairman.chairman_id,
+                chairman.tw_form_id,
+                NULL AS panelist_firstname,
+                NULL AS panelist_lastname,
+                acc.firstname AS chairman_firstname,
+                acc.lastname AS chairman_lastname,
+                'chairman' AS role
+            FROM assigned_chairman chairman
+            LEFT JOIN ACCOUNTS acc ON chairman.user_id = acc.user_id AND acc.user_type = 'chairman'
+            WHERE chairman.tw_form_id = ?
+        ";
+        
+        $stmt = $conn->prepare($query);
+        if (!$stmt) {
+            die("Database query failed: " . $conn->error);
+        }
+    
+        $stmt->bind_param("ii", $tw_form_id, $tw_form_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    
+        return $result->num_rows > 0 ? $result->fetch_all(MYSQLI_ASSOC) : [];
+    }
 
     $tw_form_id = $_GET['tw_form_id']; 
     $twform_details = getTWFormDetails($tw_form_id); 
     $twform5_details = getTWForm5Details($tw_form_id);  
     $manuscript = manuscript($tw_form_id);
-    $panelists = GetAssignedPanelist($tw_form_id);  
+    $assigned_users = GetAssignedPanelistsAndChairman($tw_form_id); 
     $eval_criteria = getEvalCriteria($tw_form_id);
 ?>
 <section id="twform-5-details" class="pt-4">
@@ -221,23 +239,27 @@ session_start();
                 <div><strong>Institutional Research Agenda:</strong> <?= htmlspecialchars($twform_details['ir_agenda_name']) ?></div> 
                 <div><strong>College Research Agenda:</strong> <?= htmlspecialchars($twform_details['col_agenda_name']) ?></div> 
                 <div><strong>Comments:</strong> <?= htmlspecialchars($twform_details['comments']) ?></div> 
-                <div><strong>Assigned Panelists:</strong> 
-                        <?php if (!empty($panelists)): ?>
-                            <ul>
-                                <?php foreach ($panelists as $panelist): ?>
-                                    <li><?= ucwords(htmlspecialchars($panelist['panelist_firstname'] . ' ' . $panelist['panelist_lastname'])) ?></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php else: ?>
-                            <p>No panelists found for this form.</p>
-                            <a href="assign-panelists.php?tw_form_id=<?= $twform_details['tw_form_id'] ?>" 
-                                class="btn btn-primary btn-sm">Assign Panelists
-                            </a>
-                        <?php endif; ?>
-                </div>
                 <div><strong>Submitted On:</strong> <?= date("Y-m-d", strtotime($twform_details['submission_date'])) ?></div>
                 <div><strong>Last Updated:</strong> <?= date("Y-m-d", strtotime($twform_details['last_updated'])) ?></div>
-                
+                <div>
+                    <strong>Assigned Panelists and Chairman:</strong>
+                    <?php if (!empty($assigned_users)): ?>
+                        <ul>
+                            <?php foreach ($assigned_users as $user): ?>
+                                <li>
+                                    <?= ucwords(htmlspecialchars(
+                                        $user['role'] === 'panelist' 
+                                            ? $user['panelist_firstname'] . ' ' . $user['panelist_lastname'] 
+                                            : $user['chairman_firstname'] . ' ' . $user['chairman_lastname']
+                                    )) ?>
+                                    (<?= ucfirst($user['role']) ?>)
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <p>No panelists or chairman assigned yet.</p>
+                    <?php endif; ?>
+                </div> 
         </div>
 
             <div class="table-container mt-4">

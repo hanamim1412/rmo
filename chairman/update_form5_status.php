@@ -1,5 +1,5 @@
 <?php
-//dean/update-tw6.php
+// dean/update_form5_status.php
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
@@ -9,18 +9,16 @@ if (!isset($_SESSION['user_id'])) {
 
 require '../config/connect.php';
 
-if (!isset($_POST['tw_form_id'], $_POST['statistician'], $_POST['editor'], $_POST['form_type'])) {
-    $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Invalid request. Missing form ID, comments, or form type.'];
+if (!isset($_POST['tw_form_id'], $_POST['status'], $_POST['form_type'], $_POST['update_status'])) {
+    $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Invalid request. Missing required data.'];
     header("Location: tw-forms.php");
     exit();
 }
-
 $tw_form_id = mysqli_real_escape_string($conn, $_POST['tw_form_id']);
-$statistician = mysqli_real_escape_string($conn, $_POST['statistician']);
-$editor = mysqli_real_escape_string($conn, $_POST['editor']);
+$status = mysqli_real_escape_string($conn, $_POST['status']);
 $form_type = mysqli_real_escape_string($conn, $_POST['form_type']);
 
-
+$valid_statuses = ['pending', 'graded'];
 switch ($form_type) {
     case 'twform_1':
         $redirectPage = "tw-form1-details.php?tw_form_id=" . $tw_form_id;
@@ -46,20 +44,20 @@ switch ($form_type) {
         break;
 }
 
-$query = "UPDATE twform_6 SET statistician = ?, editor = ?, last_updated = NOW() WHERE tw_form_id = ?";
-$stmt = $conn->prepare($query);
-if (!$stmt) {
-    $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Failed to prepare the query: ' . $conn->error];
+if (!in_array($status, $valid_statuses)) {
+    $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Invalid request status.'];
     header("Location: $redirectPage");
     exit();
 }
 
-$stmt->bind_param("ssi", $statistician, $editor, $tw_form_id);
+$query = "UPDATE twform_5 SET status = ?, last_updated = NOW() WHERE tw_form_id = ?";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("si", $status, $tw_form_id);
 
 if ($stmt->execute()) {
-    $_SESSION['messages'][] = ['tags' => 'success', 'content' => 'Updated successfully!'];
+    $_SESSION['messages'][] = ['tags' => 'success', 'content' => 'Status updated successfully!'];
 } else {
-    $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Failed to update comments: ' . $stmt->error];
+    $_SESSION['messages'][] = ['tags' => 'danger', 'content' => 'Failed to update status: ' . $stmt->error];
 }
 
 header("Location: $redirectPage");

@@ -324,11 +324,10 @@ session_start();
                     $result = $stmt->get_result();
 
                     $document_types = [
-                        'Certificate of Conformity Status',
+                        'Certificate of Conformity',
                         'Certificate of Data Gathering',
                         'Certificate of Similarity',
-                        'CV of Certification from Data Analyst',
-                        'Article Submitted to Repository'
+                        'Article Repository'
                     ];
                     $existing_documents = [];
                     while ($row = $result->fetch_assoc()) {

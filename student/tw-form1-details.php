@@ -134,6 +134,7 @@ session_start();
                 title.tw_form_id,
                 title.title_name,
                 title.rationale,
+                title.remarks,
                 title.is_selected
             FROM PROPOSED_TITLE title
             LEFT JOIN TW_FORMS tw ON title.tw_form_id = tw.tw_form_id
@@ -318,6 +319,7 @@ session_start();
                                     <th scope="col">#</th>
                                     <th scope="col">Title</th>
                                     <th scope="col">Rationale</th>
+                                    <th scope="col">Remarks</th>
                                     <th scope="col">Status</th>
                                 </tr>
                             </thead>
@@ -327,6 +329,7 @@ session_start();
                                         <td><?= $index + 1 ?></td>
                                         <td><?= htmlspecialchars($title['title_name']) ?></td>
                                         <td><?= htmlspecialchars($title['rationale']) ?></td>
+                                        <td><?= htmlspecialchars($title['remarks']?? 'no remarks from rmo yet') ?></td>
                                         <td>
                                             <?php if ($title['is_selected'] == 1): ?>
                                                 <span class="badge btn-success">Selected</span>

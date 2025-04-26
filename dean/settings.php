@@ -15,18 +15,18 @@
 
 
     $query = "SELECT department_id FROM ACCOUNTS WHERE user_id = ?";
-    $stmt = mysqli_prepare($conn, $query);
-    if (!$stmt) {
-        die("Database Query Failed: " . mysqli_error($conn));
-    }
-    mysqli_stmt_bind_param($stmt, "i", $user_id);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    if (!$result || mysqli_num_rows($result) === 0) {
-        die("Unable to fetch department information for the logged-in user.");
-    }
-    $dean_data = mysqli_fetch_assoc($result);
-    $dean_department_id = $dean_data['department_id'];
+        $stmt = mysqli_prepare($conn, $query);
+        if (!$stmt) {
+            die("Database Query Failed: " . mysqli_error($conn));
+        }
+        mysqli_stmt_bind_param($stmt, "i", $user_id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        if (!$result || mysqli_num_rows($result) === 0) {
+            die("Unable to fetch department information for the logged-in user.");
+        }
+        $dean_data = mysqli_fetch_assoc($result);
+        $dean_department_id = $dean_data['department_id'];
     function getAgenda($dean_department_id) {
         global $conn;
         $query = "
@@ -59,6 +59,8 @@
 
     function getResearchAdvisers() {
         global $conn;
+        $user_id = $_SESSION['user_id']; // Get the current user's ID
+    
         $query = "
             SELECT 
                 acc.user_id, 
@@ -72,23 +74,26 @@
             FROM ACCOUNTS acc
             LEFT JOIN DEPARTMENTS dept ON acc.department_id = dept.department_id
             WHERE acc.user_type = 'research_adviser'
+              AND acc.created_by = $user_id
             ORDER BY acc.date_created
         ";
         $result = mysqli_query($conn, $query);
-
+    
         if (!$result) {
             die("Database Query Failed: " . mysqli_error($conn));
         }
-
+    
         $research_advisers = [];
         while ($row = mysqli_fetch_assoc($result)) {
             $research_advisers[] = $row;
         }
-
+    
         return $research_advisers;
     }
     function getPanelists() {
         global $conn;
+        $user_id = $_SESSION['user_id']; // Get the current user's ID
+    
         $query = "
             SELECT 
                 ACCOUNTS.user_id, 
@@ -104,6 +109,7 @@
             FROM ACCOUNTS 
             LEFT JOIN DEPARTMENTS dept ON ACCOUNTS.department_id = dept.department_id
             WHERE ACCOUNTS.user_type = 'panelist'
+              AND ACCOUNTS.created_by = $user_id
             ORDER BY ACCOUNTS.date_created
         ";
         $result = mysqli_query($conn, $query);
@@ -122,6 +128,8 @@
     
     function getChairmen() {
         global $conn;
+        $user_id = $_SESSION['user_id']; // Get the current user's ID
+    
         $query = "
             SELECT 
                 ACCOUNTS.user_id, 
@@ -137,6 +145,7 @@
             FROM ACCOUNTS 
             LEFT JOIN DEPARTMENTS dept ON ACCOUNTS.department_id = dept.department_id
             WHERE ACCOUNTS.user_type = 'chairman'
+              AND ACCOUNTS.created_by = $user_id
             ORDER BY ACCOUNTS.date_created
         ";
         $result = mysqli_query($conn, $query);

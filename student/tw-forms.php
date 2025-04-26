@@ -86,24 +86,22 @@
     }
     
     $overall_status = $_GET['overall_status'] ?? null;
-    $twform_details = getTWForms($overall_status);
+    $twform_details = getTWForms($overall_status, $user_id);
     
     $status = ($overall_status) ? ucfirst($overall_status) : 'All';
 ?>
 
 <section id="tw-forms" class="pt-4">
-    <div class="header-container pt-4">
-        <h4 class="text-left">Submitted Forms</h4>
-    </div>
-            <div class="d-flex justify-content-between align-items-center mb-4">
+    
+            <div class="d-flex justify-content-start align-items-center mb-4">
                 <a href="javascript:history.back()" class="btn btn-link" style="font-size: 1rem; text-decoration: none; color: black;">
                     <i class="fas fa-arrow-left" style="margin-right: 10px; font-size: 1.2rem;"></i>
-                    Back
                 </a>
-                <div class="d-flex justify-content-end align-items-center" style="gap: 10px">
-                        <a href="javascript:void(0);" data-bs-toggle="modal" class="btn btn-success btn-sm text-decoration-none" data-bs-target="#formTypeModal"></i> <strong>Request Form</strong></a>
+                <div class="header-container pt-4">
+                    <h4 class="text-left">Submitted Forms</h4>
                 </div>
             </div>
+            
 
             <div class="modal fade" id="formTypeModal" tabindex="-1" aria-labelledby="formTypeModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
@@ -144,128 +142,136 @@
             </div>
         <?php endif; ?>
 
-        <div class="row mb-3">
-            <div class="col-md-3">
-                <select id="overall_status" name="overall_status" class="form-select">
-                    <option value="">Select Status</option>
-                    <option value="pending" <?= ($overall_status === 'pending') ? 'selected' : '' ?>>Pending</option>
-                    <option value="approved" <?= ($overall_status === 'approved') ? 'selected' : '' ?>>Approved</option>
-                    <option value="rejected" <?= ($overall_status === 'rejected') ? 'selected' : '' ?>>Rejected</option>
-                </select>
-            </div>
-                    
-            <div class="col-md-2">
-                <button id="apply-filters" class="btn btn-success btn-sm w-100">Apply Filters</button>
-            </div>
-        </div>
-    
-        <div class="row">
-                <div class="table-responsive">
-                    <table id="items-table" class="table table-bordered table-sm display">
-                        <thead class="thead-background">
-                            <tr>
-                                <th scope="col">#</th>
-                                <th scope="col">Form Type</th>
-                                <th scope="col">College</th>
-                                <th scope="col">Course</th>
-                                <th scope="col">Submitted By</th>
-                                <th scope="col">Research Adviser</th>
-                                <th scope="col">attachment</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Date</th>
-                                <th scope="col">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php $i = 1; foreach ($twform_details as $form): ?>
-                                <tr>
-                                    <td><?= $i++; ?></td>
-                                    <td><?= $form['form_type'] ?></td>
-                                    <td><?= $form['department_name'] ?></td> 
-                                    <td><?= $form['course_name'] ?></td> 
-                                    <td><?= $form['student_firstname'] . ' ' . $form['student_lastname'] ?></td> 
-                                    <td><?= $form['adviser_firstname'] . ' ' . $form['adviser_lastname'] ?></td> 
-                                    <td>
-                                        <?php if (!empty($form['attachment'])): ?>
+        <div class="card">
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <select id="overall_status" name="overall_status" class="form-select form-select-sm">
+                            <option value="">Select Status</option>
+                            <option value="pending" <?= ($overall_status === 'pending') ? 'selected' : '' ?>>Pending</option>
+                            <option value="approved" <?= ($overall_status === 'approved') ? 'selected' : '' ?>>Approved</option>
+                            <option value="rejected" <?= ($overall_status === 'rejected') ? 'selected' : '' ?>>Rejected</option>
+                        </select>
+                    </div>
+                            
+                    <div class="col-md-2">
+                        <button id="apply-filters" class="btn btn-success btn-sm w-100">Apply Filters</button>
+                    </div>
+                    <div class="col-md-2">
+                            <a href="javascript:void(0);" data-bs-toggle="modal" class="btn btn-success btn-sm text-decoration-none" data-bs-target="#formTypeModal"></i> <strong>Request Form</strong></a>
+                    </div>
 
-                                            <?php 
-                                                $filePath = "../uploads/documents/" . htmlspecialchars($form['attachment']);
-                                                $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
-                                            ?>
-                                            
-                                            <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
-                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-success">View Attachment (<?= strtoupper($fileExtension) ?>)</a>
-                                            <?php else: ?>
-                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-success">View Attachment (<?= strtoupper($fileExtension) ?>)</a>
-                                            <?php endif; ?>
+                </div>
+            
+                <div class="row">
+                        <div class="table-responsive">
+                            <table id="items-table" class="table table-bordered table-sm display">
+                                <thead class="thead-background">
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        <th scope="col">Form Type</th>
+                                        <th scope="col">College</th>
+                                        <th scope="col">Course</th>
+                                        <th scope="col">Submitted By</th>
+                                        <th scope="col">Research Adviser</th>
+                                        <th scope="col">attachment</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col">Date</th>
+                                        <th scope="col">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php $i = 1; foreach ($twform_details as $form): ?>
+                                        <tr>
+                                            <td><?= $i++; ?></td>
+                                            <td><?= $form['form_type'] ?></td>
+                                            <td><?= $form['department_name'] ?></td> 
+                                            <td><?= $form['course_name'] ?></td> 
+                                            <td><?= $form['student_firstname'] . ' ' . $form['student_lastname'] ?></td> 
+                                            <td><?= $form['adviser_firstname'] . ' ' . $form['adviser_lastname'] ?></td> 
+                                            <td class="text-center">
+                                                <?php if (!empty($form['attachment'])): ?>
 
-                                        <?php else: ?>
-                                            <span class="badge badge-danger badge-sm">No attachment available.</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td><?= ucfirst($form['overall_status']) ?></td>
-                                    <td><?= $form['submission_date'] ?></td>
-                                    <td>
-                                    <?php 
-                                        switch ($form['form_type']) {
-                                            case 'twform_1':
-                                                $viewPage = 'tw-form1-details.php';
-                                                $editPage = 'twform1-edit.php';
-                                                break;
-                                            case 'twform_2':
-                                                $viewPage = 'tw-form2-details.php';
-                                                $editPage = 'twform2-edit.php';
-                                                break;
-                                            case 'twform_3':
-                                                $viewPage = 'tw-form3-details.php';
-                                                $editPage = 'twform3-edit.php';
-                                                break;
-                                            case 'twform_4':
-                                                $viewPage = 'tw-form4-details.php';
-                                                $editPage = 'twform4-edit.php';
-                                                break;
-                                            case 'twform_5':
-                                                $viewPage = 'tw-form5-details.php';
-                                                $editPage = 'twform5-edit.php';
-                                                break;
-                                            case 'twform_6':
-                                                $viewPage = 'tw-form6-details.php';
-                                                $editPage = 'twform6-edit.php';
-                                                break;
-                                            default:
-                                                $_SESSION['messages'][] = [
-                                                    'tags' => 'danger', 
-                                                    'content' => "Unknown form type encountered for Form ID: {$form['tw_form_id']}."
-                                                ];
-                                                $viewPage = 'tw-forms.php'; 
-                                                break;
-                                        }
-                                        ?>
-                                            <div class="d-flex justify-content-between align-items-center mb-1" style="gap: 5px">
-                                                <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view">View</a>
-                                                <?php if ($form['overall_status'] == 'pending'): ?>
-                                                    <a href="<?= $editPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-primary btn-sm" id="edit">Edit</a>
-                                                    <form action="delete-twform.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this form?');">
-                                                        <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($form['tw_form_id']); ?>">
-                                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                                                    </form>
+                                                    <?php 
+                                                        $filePath = "../uploads/documents/" . htmlspecialchars($form['attachment']);
+                                                        $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                                                    ?>
+                                                    
+                                                    <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
+                                                        <a href="<?= $filePath ?>" target="_blank" class="btn btn-lg btn-outline-success"><i class="fa-regular fa-image"></i></a>
+                                                    <?php else: ?>
+                                                        <a href="<?= $filePath ?>" target="_blank" class="btn btn-lg btn-outline-success"><i class="fa-regular fa-file"></i></a>
+                                                    <?php endif; ?>
+
+                                                <?php else: ?>
+                                                    <span class="badge badge-danger badge-sm">No attachment available.</span>
                                                 <?php endif; ?>
-                                                
-                                            </div>
-                                        </td>
+                                            </td>
+                                            <td><?= ucfirst($form['overall_status']) ?></td>
+                                            <td><?= $form['submission_date'] ?></td>
+                                            <td>
+                                            <?php 
+                                                switch ($form['form_type']) {
+                                                    case 'twform_1':
+                                                        $viewPage = 'tw-form1-details.php';
+                                                        $editPage = 'twform1-edit.php';
+                                                        break;
+                                                    case 'twform_2':
+                                                        $viewPage = 'tw-form2-details.php';
+                                                        $editPage = 'twform2-edit.php';
+                                                        break;
+                                                    case 'twform_3':
+                                                        $viewPage = 'tw-form3-details.php';
+                                                        $editPage = 'twform3-edit.php';
+                                                        break;
+                                                    case 'twform_4':
+                                                        $viewPage = 'tw-form4-details.php';
+                                                        $editPage = 'twform4-edit.php';
+                                                        break;
+                                                    case 'twform_5':
+                                                        $viewPage = 'tw-form5-details.php';
+                                                        $editPage = 'twform5-edit.php';
+                                                        break;
+                                                    case 'twform_6':
+                                                        $viewPage = 'tw-form6-details.php';
+                                                        $editPage = 'twform6-edit.php';
+                                                        break;
+                                                    default:
+                                                        $_SESSION['messages'][] = [
+                                                            'tags' => 'danger', 
+                                                            'content' => "Unknown form type encountered for Form ID: {$form['tw_form_id']}."
+                                                        ];
+                                                        $viewPage = 'tw-forms.php'; 
+                                                        break;
+                                                }
+                                                ?>
+                                                    <div class="d-flex justify-content-between align-items-center mb-1" style="gap: 5px">
+                                                        <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view"><i class="fa-solid fa-circle-info"></i></a>
+                                                        <?php if ($form['overall_status'] == 'pending'): ?>
+                                                            <a href="<?= $editPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-primary btn-sm" id="edit"><i class="fas fa-edit"></i></a>
+                                                            <form action="delete-twform.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this form?');">
+                                                                <input type="hidden" name="tw_form_id" value="<?= htmlspecialchars($form['tw_form_id']); ?>">
+                                                                <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
+                                                            </form>
+                                                        <?php endif; ?>
+                                                        
+                                                    </div>
+                                                </td>
 
-                                </tr>
-                                <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                <div id="loadingOverlay" class="d-none">
+                    <div id="loadingSpinnerContainer" class="spinner-border" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
                 </div>
             </div>
-        <div id="loadingOverlay" class="d-none">
-            <div id="loadingSpinnerContainer" class="spinner-border" role="status">
-                <span class="sr-only">Loading...</span>
             </div>
         </div>
-    </div>
 
 </section>
 

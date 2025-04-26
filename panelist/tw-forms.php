@@ -149,7 +149,7 @@
                                     <td><?= $form['course_name'] ?></td> 
                                     <td><?= $form['student_firstname'] . ' ' . $form['student_lastname'] ?></td> 
                                     <td><?= $form['adviser_firstname'] . ' ' . $form['adviser_lastname'] ?></td> 
-                                    <td>
+                                    <td class="text-center">
                                         <?php if (!empty($form['attachment'])): ?>
 
                                             <?php 
@@ -158,9 +158,9 @@
                                             ?>
                                             
                                             <?php if (in_array(strtolower($fileExtension), ['jpg', 'jpeg', 'png', 'gif', 'bmp'])): ?>
-                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-success">View Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-lg btn-outline-success"><i class="fa-regular fa-image"></i></a>
                                             <?php else: ?>
-                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-sm btn-success">View Attachment (<?= strtoupper($fileExtension) ?>)</a>
+                                                <a href="<?= $filePath ?>" target="_blank" class="btn btn-lg btn-outline-success"><i class="fa-regular fa-file"></i></a>
                                             <?php endif; ?>
 
                                         <?php else: ?>
@@ -169,16 +169,14 @@
                                     </td>
                                     <td><?= ucfirst($form['overall_status']) ?></td>
                                     <td><?= $form['submission_date'] ?></td>
-                                    <td>
+                                    <td class="text-center">
                                         <?php 
                                         switch ($form['form_type']) {
                                             case 'twform_3':
                                                 $viewPage = 'tw-form3-details.php';
-                                                $pdfPage = 'generate_twform3_pdf.php';
                                                 break;
                                             case 'twform_5':
                                                 $viewPage = 'tw-form5-details.php';
-                                                $pdfPage = 'generate_twform5_pdf.php';
                                                 break;
                                             default:
                                                     $_SESSION['messages'][] = [
@@ -190,13 +188,7 @@
                                         }
                                         ?>
                                         <div class="d-flex justify-content-between align-items-center mb-1" style="gap: 5px">
-                                            <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view">View</a>
-                                            <?php if ($pdfPage): ?>
-                                                <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=I" class="btn btn-success btn-sm" target="_blank">Print</a>
-                                                <a href="../<?= $pdfPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>&action=D" class="btn btn-primary btn-sm" target="_blank">Download</a>
-                                            <?php else: ?>
-                                                <span class="text-muted">PDF generation not available for this form type.</span>
-                                            <?php endif; ?>
+                                            <a href="<?= $viewPage ?>?tw_form_id=<?= $form['tw_form_id'] ?>" class="btn btn-warning btn-sm" id="view"><i class="fa-solid fa-circle-info"></i></a>
                                         </div>
                                     </td>
                                 </tr>

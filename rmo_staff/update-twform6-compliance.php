@@ -18,11 +18,10 @@ $tw_form_id = intval($_POST['tw_form_id']);
 $checked_by = $_SESSION['user_id']; 
 $selected_documents = $_POST['documents'];
 $all_documents = [
-    "Certificate of Conformity Status",
+    "Certificate of Conformity",
     "Certificate of Data Gathering",
     "Certificate of Similarity",
-    "CV of Certification from Data Analyst",
-    "Article Submitted to Repository"
+    "Article Repository"
 ];
 
 $checkQuery = "SELECT tw_form_id FROM twform_6 WHERE tw_form_id = ?";

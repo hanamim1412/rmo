@@ -172,7 +172,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </div>
                         </div>
                     </div>
-
+                    <?php if (!empty($messages)): ?>
+                        <div class="container mt-3">
+                            <?php foreach ($messages as $message): ?>
+                                <div class="alert alert-<?= htmlspecialchars($message['tags']) ?> alert-dismissible fade show" role="alert">
+                                <i class="fa-solid fa-circle-exclamation"></i> <?= htmlspecialchars($message['content']) ?>
+                                    <button type="button" class="close" data-bs-dismiss="alert" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                     <input type="submit" value="Sign In" class="btn btn-primary btn-block mt-4 mb-2">
 
                     <div class="mt-4 forgot-password-container text-center">
